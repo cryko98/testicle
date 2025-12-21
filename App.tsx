@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
@@ -9,6 +9,7 @@ const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
 const CTO_LEADER_URL = "https://x.com/tisgambino";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
+const THEME_YELLOW = "#fbbf24";
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -96,6 +97,173 @@ const Snowfall: React.FC = () => {
         </div>
       ))}
     </div>
+  );
+};
+
+const DrawingBoard: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [mode, setMode] = useState<'pen' | 'eraser'>('pen');
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Set display size
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.scale(2, 2);
+    context.lineCap = 'round';
+    context.strokeStyle = THEME_YELLOW;
+    context.lineWidth = 5;
+    
+    // Fill background black initially
+    context.fillStyle = "black";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    contextRef.current = context;
+  }, []);
+
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !contextRef.current) return;
+
+    const rect = canvas.getBoundingClientRect();
+    let offsetX, offsetY;
+
+    if ('touches' in e) {
+      offsetX = e.touches[0].clientX - rect.left;
+      offsetY = e.touches[0].clientY - rect.top;
+    } else {
+      offsetX = e.nativeEvent.offsetX;
+      offsetY = e.nativeEvent.offsetY;
+    }
+
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(offsetX, offsetY);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || !contextRef.current || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    let offsetX, offsetY;
+
+    if ('touches' in e) {
+      offsetX = e.touches[0].clientX - rect.left;
+      offsetY = e.touches[0].clientY - rect.top;
+      // Prevent scrolling while drawing on touch devices
+      if (e.cancelable) e.preventDefault();
+    } else {
+      offsetX = e.nativeEvent.offsetX;
+      offsetY = e.nativeEvent.offsetY;
+    }
+
+    contextRef.current.strokeStyle = mode === 'pen' ? THEME_YELLOW : 'black';
+    contextRef.current.lineWidth = mode === 'pen' ? 5 : 20;
+    contextRef.current.lineTo(offsetX, offsetY);
+    contextRef.current.stroke();
+  };
+
+  const stopDrawing = () => {
+    if (contextRef.current) {
+      contextRef.current.closePath();
+    }
+    setIsDrawing(false);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    if (!canvas || !context) return;
+    context.fillStyle = "black";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const downloadDrawing = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'my-testicle-character.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  return (
+    <SectionReveal id="draw" className="py-24 px-6 bg-black relative">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Draw your own Testicle character</h2>
+        <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest italic">Channel your inner Dev</p>
+        
+        <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-4 md:p-8 shadow-[10px_10px_0px_rgba(251,191,36,0.1)]">
+          <div className="flex flex-col gap-6">
+            {/* Toolbar */}
+            <div className="flex justify-center gap-4">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMode('pen')}
+                className={`p-4 rounded-xl border-2 transition-all ${mode === 'pen' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}
+              >
+                <Pencil size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMode('eraser')}
+                className={`p-4 rounded-xl border-2 transition-all ${mode === 'eraser' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}
+              >
+                <Eraser size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={clearCanvas}
+                className="p-4 rounded-xl border-2 bg-black text-red-500 border-red-500 hover:bg-red-500 hover:text-black transition-all"
+              >
+                <Trash2 size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={downloadDrawing}
+                className="p-4 rounded-xl border-2 bg-black text-green-500 border-green-500 hover:bg-green-500 hover:text-black transition-all"
+              >
+                <Download size={24} />
+              </motion.button>
+            </div>
+
+            {/* Canvas Container */}
+            <div className="relative bg-black rounded-2xl overflow-hidden border-2 border-yellow-400/30 cursor-crosshair touch-none">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="w-full h-[400px] md:h-[500px]"
+              />
+            </div>
+            
+            <p className="text-center text-yellow-400/40 text-sm uppercase tracking-widest font-bold">
+              Tip: Draw a circle with two dots and a stick body
+            </p>
+          </div>
+        </div>
+      </div>
+    </SectionReveal>
   );
 };
 
@@ -309,7 +477,7 @@ const Navbar: React.FC = () => {
         </motion.div>
         
         <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
-          {["About", "Meme-Lab", "How-to-Buy", "Chart"].map((item) => (
+          {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
             <motion.a 
               key={item}
               href={`#${item.toLowerCase()}`} 
@@ -348,7 +516,7 @@ const Navbar: React.FC = () => {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center overflow-hidden"
           >
-            {["About", "Meme-Lab", "How-to-Buy", "Chart"].map((item) => (
+            {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
               <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setIsOpen(false)}>{item.replace("-", " ")}</a>
             ))}
             <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
@@ -626,6 +794,7 @@ const App: React.FC = () => {
         <Hero />
         <About />
         <MemeGenerator />
+        <DrawingBoard />
         <HowToBuy />
         <Chart />
       </main>
