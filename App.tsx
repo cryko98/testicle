@@ -1,14 +1,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
 const CTO_LEADER_URL = "https://x.com/tisgambino";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
+const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 
-// Custom X (formerly Twitter) logo component
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
     width={size} 
@@ -20,6 +21,49 @@ const XLogo = ({ size = 24, className = "" }: { size?: number, className?: strin
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z" />
   </svg>
 );
+
+const SectionReveal: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className, id }) => (
+  <motion.section
+    id={id}
+    initial={{ opacity: 0, y: 50 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-100px" }}
+    transition={{ duration: 0.8, ease: "easeOut" }}
+    className={className}
+  >
+    {children}
+  </motion.section>
+);
+
+const BackgroundDrifters: React.FC = () => {
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-10">
+      {[...Array(6)].map((_, i) => (
+        <motion.img
+          key={i}
+          src={LOGO_URL}
+          className="absolute w-32 h-32 md:w-64 md:h-64"
+          initial={{ 
+            x: Math.random() * 100 + "%", 
+            y: Math.random() * 100 + "%",
+            rotate: Math.random() * 360
+          }}
+          animate={{ 
+            x: [null, Math.random() * 100 + "%"],
+            y: [null, Math.random() * 100 + "%"],
+            rotate: [null, Math.random() * 360]
+          }}
+          transition={{
+            duration: Math.random() * 20 + 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "linear"
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 const Snowfall: React.FC = () => {
   const flakes = useMemo(() => {
@@ -157,7 +201,7 @@ const MemeGenerator: React.FC = () => {
   };
 
   return (
-    <section id="generator" className="py-24 px-6 bg-black relative">
+    <SectionReveal id="generator" className="py-24 px-6 bg-black relative">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Winter Meme Lab</h2>
         <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest">Black Face • Yellow Outline • Yellow Body</p>
@@ -171,85 +215,124 @@ const MemeGenerator: React.FC = () => {
                 placeholder="Describe your winter meme idea (e.g. Testicle in a blizzard...)"
                 className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
               />
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.1, rotate: 180 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setPrompt(randomPrompts[Math.floor(Math.random() * randomPrompts.length)])}
                 className="absolute right-4 bottom-4 text-yellow-400 hover:text-white transition-colors p-2"
                 title="Shuffle Prompt"
               >
                 <RefreshCw size={24} />
-              </button>
+              </motion.button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => generateMeme()}
                 disabled={generating || !prompt.trim()}
                 className="bg-yellow-400 text-black font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[6px_6px_0px_#78350f]"
               >
                 {generating ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
                 COOK THE MEME
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleRandomMeme}
                 disabled={generating}
                 className="bg-black text-yellow-400 border-4 border-yellow-400 font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50 shadow-[6px_6px_0px_rgba(251,191,36,0.2)]"
               >
                 <Sparkles size={28} />
                 RANDOM MEME
-              </button>
+              </motion.button>
             </div>
 
             {error && <p className="text-red-500 text-center font-bold text-lg uppercase">{error}</p>}
 
-            {resultImage && (
-              <div className="mt-8 animate-in fade-in zoom-in duration-500">
-                <div className="relative group rounded-2xl overflow-hidden border-4 border-yellow-400 bg-black aspect-square max-w-md mx-auto shadow-[15px_15px_0px_rgba(251,191,36,0.1)]">
-                  <img src={resultImage} alt="Generated Meme" className="w-full h-full object-cover" />
-                  <a 
-                    href={resultImage} 
-                    download="testicle-meme.png"
-                    className="absolute top-4 right-4 bg-yellow-400 text-black p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                  >
-                    <Download size={24} />
-                  </a>
-                </div>
-                <p className="text-center text-yellow-400/60 mt-4 text-lg uppercase tracking-tighter italic">Hand-drawn Stick Masterpiece</p>
-              </div>
-            )}
+            <AnimatePresence>
+              {resultImage && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="mt-8"
+                >
+                  <div className="relative group rounded-2xl overflow-hidden border-4 border-yellow-400 bg-black aspect-square max-w-md mx-auto shadow-[15px_15px_0px_rgba(251,191,36,0.1)]">
+                    <img src={resultImage} alt="Generated Meme" className="w-full h-full object-cover" />
+                    <motion.a 
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      href={resultImage} 
+                      download="testicle-meme.png"
+                      className="absolute top-4 right-4 bg-yellow-400 text-black p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <Download size={24} />
+                    </motion.a>
+                  </div>
+                  <p className="text-center text-yellow-400/60 mt-4 text-lg uppercase tracking-tighter italic">Hand-drawn Stick Masterpiece</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
-    </section>
+    </SectionReveal>
   );
 };
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-b-2 border-yellow-500/30 py-4 px-6">
+      <motion.div 
+        className="absolute bottom-[-2px] left-0 right-0 h-1 bg-yellow-400 origin-left"
+        style={{ scaleX }}
+      />
       <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-4">
+        <motion.div 
+          className="flex items-center gap-4 cursor-pointer"
+          whileHover={{ scale: 1.05 }}
+          onClick={() => window.scrollTo(0, 0)}
+        >
           <img src={LOGO_URL} alt="logo" className="w-14 h-14 object-contain" />
           <span className="text-3xl tracking-tighter text-yellow-400 yellow-glow uppercase">testicle</span>
-        </div>
+        </motion.div>
         
         <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
-          <a href="#about" className="hover:text-white transition-colors">About</a>
-          <a href="#generator" className="hover:text-white transition-colors">Memes</a>
-          <a href="#chart" className="hover:text-white transition-colors">Chart</a>
+          {["About", "Generator", "How-to-Buy", "Chart"].map((item) => (
+            <motion.a 
+              key={item}
+              href={`#${item.toLowerCase()}`} 
+              className="hover:text-white transition-colors relative group"
+              whileHover={{ y: -2 }}
+            >
+              {item.replace("-", " ")}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all group-hover:w-full" />
+            </motion.a>
+          ))}
           <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
             Community <XLogo size={18} />
           </a>
-          <a 
-            href={`https://dexscreener.com/solana/${CONTRACT_ADDRESS}`} 
+          <motion.a 
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileTap={{ scale: 0.95 }}
+            href={PUMP_FUN_URL} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="bg-yellow-400 text-black px-6 py-2 rounded-lg hover:bg-yellow-300 transition-all shadow-[4px_4px_0px_#78350f]"
           >
             BUY NOW
-          </a>
+          </motion.a>
         </div>
 
         <button className="md:hidden text-yellow-400" onClick={() => setIsOpen(!isOpen)}>
@@ -257,22 +340,29 @@ const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {isOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center">
-          <a href="#about" onClick={() => setIsOpen(false)}>About</a>
-          <a href="#generator" onClick={() => setIsOpen(false)}>Memes</a>
-          <a href="#chart" onClick={() => setIsOpen(false)}>Chart</a>
-          <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
-          <a 
-            href={`https://dexscreener.com/solana/${CONTRACT_ADDRESS}`} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="bg-yellow-400 text-black py-4 rounded-lg shadow-[4px_4px_0px_#78350f]"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center overflow-hidden"
           >
-            BUY NOW
-          </a>
-        </div>
-      )}
+            {["About", "Generator", "How-to-Buy", "Chart"].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setIsOpen(false)}>{item.replace("-", " ")}</a>
+            ))}
+            <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
+            <a 
+              href={PUMP_FUN_URL} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-yellow-400 text-black py-4 rounded-lg shadow-[4px_4px_0px_#78350f]"
+            >
+              BUY NOW
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
@@ -287,101 +377,223 @@ const Hero: React.FC = () => {
   };
 
   return (
-    <section className="pt-40 pb-24 px-6 relative overflow-hidden bg-black">
-      <div className="max-w-4xl mx-auto text-center">
-        <div className="mb-10 inline-block relative">
-           <img 
+    <section className="pt-40 pb-24 px-6 relative overflow-hidden bg-black flex flex-col items-center">
+      <div className="max-w-4xl mx-auto text-center z-10">
+        <motion.div 
+          className="mb-10 inline-block relative"
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        >
+           <motion.img 
+             animate={{ y: [0, -20, 0], rotate: [0, 5, 0, -5, 0] }}
+             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
              src={LOGO_URL} 
              alt="Testicle Hero" 
              className="w-56 h-56 md:w-80 md:h-80 object-contain mx-auto" 
            />
-           <div className="absolute -bottom-4 -right-4 bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rotate-12 text-xl font-bold animate-pulse uppercase">
+           <motion.div 
+            initial={{ rotate: 12, scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute -bottom-4 -right-4 bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rotate-12 text-xl font-bold animate-pulse uppercase"
+           >
              $TESTICLE
-           </div>
-        </div>
+           </motion.div>
+        </motion.div>
         
-        <h1 className="text-7xl md:text-[10rem] mb-2 text-yellow-400 tracking-tighter yellow-glow uppercase leading-none">
+        <motion.h1 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-7xl md:text-[10rem] mb-2 text-yellow-400 tracking-tighter yellow-glow uppercase leading-none"
+        >
           testicle
-        </h1>
-        <p className="text-3xl md:text-5xl font-bold mb-12 tracking-widest uppercase opacity-90">
+        </motion.h1>
+        <motion.p 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-3xl md:text-5xl font-bold mb-12 tracking-widest uppercase opacity-90"
+        >
           $testicle
-        </p>
+        </motion.p>
 
-        <div className="flex flex-col items-center gap-8">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="flex flex-col items-center gap-8"
+        >
           <div className="bg-yellow-400 text-black border-4 border-black rounded-xl p-4 w-full max-w-xl flex items-center justify-between gap-4 shadow-[6px_6px_0px_rgba(251,191,36,0.4)]">
             <code className="text-sm md:text-xl font-bold break-all leading-tight">
               {CONTRACT_ADDRESS}
             </code>
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={copyCA}
-              className="bg-black text-yellow-400 p-3 rounded-lg hover:scale-110 transition-transform shrink-0"
+              className="bg-black text-yellow-400 p-3 rounded-lg shrink-0"
             >
               {copied ? <Check size={24} /> : <Copy size={24} />}
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex flex-wrap justify-center gap-6">
-            <a 
-              href={X_COMMUNITY_URL}
+            <motion.a 
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.95 }}
+              href={PUMP_FUN_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 bg-black border-4 border-yellow-400 px-10 py-5 rounded-xl text-2xl hover:bg-yellow-400 hover:text-black transition-all shadow-[6px_6px_0px_rgba(251,191,36,0.3)]"
             >
-              <XLogo size={28} /> JOIN COMMUNITY
-            </a>
+              🚀 BUY ON PUMP.FUN
+            </motion.a>
           </div>
-        </div>
+        </motion.div>
       </div>
+
+      <motion.div 
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="mt-20 text-yellow-400/30"
+      >
+        <ChevronDown size={48} />
+      </motion.div>
     </section>
   );
 };
 
 const About: React.FC = () => {
   return (
-    <section id="about" className="py-24 px-6 bg-yellow-400/5 relative">
+    <SectionReveal id="about" className="py-24 px-6 bg-yellow-400/5 relative">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-5xl md:text-6xl text-yellow-400 mb-12 text-center yellow-glow uppercase">About $testicle</h2>
-        <div className="bg-black border-4 border-yellow-400 p-10 md:p-16 rounded-3xl shadow-[10px_10px_0px_#451a03] relative overflow-hidden">
+        <motion.div 
+          whileHover={{ rotate: 1, scale: 1.01 }}
+          className="bg-black border-4 border-yellow-400 p-10 md:p-16 rounded-3xl shadow-[10px_10px_0px_#451a03] relative overflow-hidden group"
+        >
           <div className="space-y-8 text-2xl md:text-3xl leading-snug">
             <p>
-              This coin was launched by the <span className="text-yellow-400 font-black">$snowball dev</span>, who used <span className="text-yellow-400">testicle</span> to battle-test the <span className="underline decoration-yellow-400">snowball tech</span>.
+              This coin was launched by the <span className="text-yellow-400 font-black">$snowball dev</span>, who used <span className="text-yellow-400 font-black">testicle</span> to battle-test the <span className="underline decoration-yellow-400 decoration-4">snowball tech</span>.
             </p>
             <p>
               It started as a technical demonstration, but it quickly grew into something much bigger. Now, the project is under the visionary leadership of <a href={CTO_LEADER_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 underline decoration-2 underline-offset-8 hover:text-white transition-colors">@tisgambino</a> as the CTO leader.
             </p>
-            <p className="text-yellow-400 text-3xl md:text-4xl pt-6 italic border-t-2 border-yellow-400/20">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-yellow-400 text-3xl md:text-4xl pt-6 italic border-t-2 border-yellow-400/20"
+            >
               "The plan is simple: drive this project to a multi-million market cap."
-            </p>
+            </motion.p>
           </div>
+          <motion.div 
+            className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-yellow-400/5 to-transparent pointer-events-none group-hover:opacity-100 opacity-0 transition-opacity"
+          />
+        </motion.div>
+      </div>
+    </SectionReveal>
+  );
+};
+
+const HowToBuy: React.FC = () => {
+  const steps = [
+    {
+      title: "CREATE WALLET",
+      desc: "Download Phantom or your wallet of choice from the app store or google play store for free. Desktop users, download the google chrome extension by going to phantom.app.",
+      icon: <Wallet size={32} />
+    },
+    {
+      title: "GET SOME SOL",
+      desc: "Have SOL in your wallet to switch to $testicle. If you don’t have any SOL, you can buy directly on phantom, transfer from another wallet, or buy on another exchange and send it to your wallet.",
+      icon: <Coins size={32} />
+    },
+    {
+      title: "GO TO PUMP.FUN",
+      desc: "Go to pump.fun and search for the contract address or click the button on this site to go directly to the $testicle page.",
+      icon: <Search size={32} />
+    },
+    {
+      title: "SWITCH SOL FOR $TESTICLE",
+      desc: "Paste the CA into pump.fun and confirm the swap. We have zero taxes so you don’t need to worry about buying with a specific slippage, although you may need to increase during times of volatility.",
+      icon: <ShoppingCart size={32} />
+    }
+  ];
+
+  return (
+    <SectionReveal id="how-to-buy" className="py-24 px-6 bg-black relative">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-5xl md:text-7xl text-yellow-400 mb-16 text-center yellow-glow uppercase">How to Buy</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {steps.map((step, idx) => (
+            <motion.div 
+              key={idx} 
+              initial={{ opacity: 0, x: idx % 2 === 0 ? -50 : 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -10, boxShadow: "0px 20px 40px rgba(251, 191, 36, 0.1)" }}
+              transition={{ delay: idx * 0.1, duration: 0.5 }}
+              className="bg-black border-4 border-yellow-400 p-8 rounded-3xl shadow-[8px_8px_0px_#451a03] flex flex-col items-start gap-4 h-full"
+            >
+              <div className="bg-yellow-400 text-black p-4 rounded-xl flex items-center justify-center mb-2">
+                {step.icon}
+              </div>
+              <h3 className="text-3xl font-black text-yellow-400 leading-tight">STEP {idx + 1}: {step.title}</h3>
+              <p className="text-xl opacity-80 font-bold leading-relaxed">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+        <div className="mt-16 text-center">
+          <motion.a 
+            whileHover={{ scale: 1.1, rotate: -2 }}
+            whileTap={{ scale: 0.9 }}
+            href={PUMP_FUN_URL} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="inline-block bg-yellow-400 text-black font-black text-3xl px-12 py-6 rounded-2xl shadow-[10px_10px_0px_#451a03]"
+          >
+            BUY $TESTICLE ON PUMP.FUN
+          </motion.a>
         </div>
       </div>
-    </section>
+    </SectionReveal>
   );
 };
 
 const Chart: React.FC = () => {
   return (
-    <section id="chart" className="py-24 px-6 relative">
+    <SectionReveal id="chart" className="py-24 px-6 relative">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-5xl md:text-6xl text-yellow-400 mb-12 text-center yellow-glow uppercase">$testicle Live Chart</h2>
-        <div className="w-full bg-black border-4 border-yellow-400 rounded-3xl overflow-hidden shadow-[10px_10px_0px_#451a03]">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          className="w-full bg-black border-4 border-yellow-400 rounded-3xl overflow-hidden shadow-[10px_10px_0px_#451a03]"
+        >
           <iframe 
             src={`https://dexscreener.com/solana/${CONTRACT_ADDRESS}?embed=1&theme=dark&trades=0&info=0`}
             style={{ width: '100%', height: '600px', border: 'none' }}
             title="Dexscreener Chart"
           />
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </SectionReveal>
   );
 };
 
 const Footer: React.FC = () => {
   return (
-    <footer className="py-20 border-t-4 border-yellow-500/20 px-6">
+    <footer className="py-20 border-t-4 border-yellow-500/20 px-6 bg-black z-10 relative">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
         <div className="flex items-center gap-6">
-          <img src={LOGO_URL} alt="logo" className="w-16 h-16 object-contain" />
+          <motion.img 
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 1 }}
+            src={LOGO_URL} alt="logo" className="w-16 h-16 object-contain" 
+          />
           <div className="text-left">
             <h3 className="text-4xl text-yellow-400 leading-none uppercase">testicle</h3>
             <p className="text-lg font-bold opacity-60 uppercase tracking-tighter">by $snowball dev</p>
@@ -391,8 +603,8 @@ const Footer: React.FC = () => {
         <div className="text-center md:text-right">
           <p className="mb-6 text-2xl font-bold">Led by <a href={CTO_LEADER_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-white underline underline-offset-4 decoration-2">@tisgambino</a></p>
           <div className="flex justify-center md:justify-end gap-10">
-            <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:scale-125 transition-transform"><XLogo size={40} /></a>
-            <a href={`https://dexscreener.com/solana/${CONTRACT_ADDRESS}`} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:scale-125 transition-transform"><ExternalLink size={40} /></a>
+            <motion.a whileHover={{ y: -5 }} href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><XLogo size={40} /></motion.a>
+            <motion.a whileHover={{ y: -5 }} href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><ExternalLink size={40} /></motion.a>
           </div>
         </div>
       </div>
@@ -405,15 +617,20 @@ const Footer: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <div className="min-h-screen selection:bg-yellow-400 selection:text-black">
+    <div className="min-h-screen selection:bg-yellow-400 selection:text-black bg-black">
+      <BackgroundDrifters />
       <Snowfall />
       <Navbar />
-      <Hero />
-      <About />
-      <MemeGenerator />
-      <Chart />
       
-      <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black">
+      <main>
+        <Hero />
+        <About />
+        <MemeGenerator />
+        <HowToBuy />
+        <Chart />
+      </main>
+      
+      <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black relative z-10">
         <div className="flex animate-marquee gap-12">
            {[...Array(10)].map((_, i) => (
              <span key={i}>$TESTICLE TESTED THE TECH • CTO BY @TISGAMBINO • MILLIONS SOON • </span>
