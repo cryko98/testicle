@@ -116,10 +116,7 @@ const Hero: React.FC = () => {
   };
 
   return (
-    <section className="pt-40 pb-24 px-6 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-yellow-400/10 blur-[150px] rounded-full -z-10"></div>
-      
+    <section className="pt-40 pb-24 px-6 relative overflow-hidden bg-black">
       <div className="max-w-4xl mx-auto text-center">
         <div className="mb-10 inline-block relative">
            <img 
