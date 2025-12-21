@@ -101,7 +101,7 @@ const MemeGenerator: React.FC = () => {
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_API_KEY || (process.env as any).API_KEY });
       
       const contents = {
         parts: [
@@ -133,7 +133,8 @@ const MemeGenerator: React.FC = () => {
       });
 
       let foundImage = false;
-      for (const part of response.candidates[0].content.parts) {
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
         if (part.inlineData) {
           setResultImage(`data:image/png;base64,${part.inlineData.data}`);
           foundImage = true;
