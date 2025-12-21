@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
-import { Copy, Check, ExternalLink, Menu, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
@@ -54,6 +55,174 @@ const Snowfall: React.FC = () => {
   );
 };
 
+const MemeGenerator: React.FC = () => {
+  const [prompt, setPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch(LOGO_URL);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          setLogoBase64(base64);
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.error("Failed to load logo for generator", err);
+      }
+    };
+    fetchLogo();
+  }, []);
+
+  const randomPrompts = [
+    "Testicle skiing down a mountain of yellow snow",
+    "Testicle stuck inside a giant yellow snowball",
+    "Testicle ice fishing and catching a golden coin",
+    "Testicle building a snowman that looks exactly like him",
+    "Testicle sledding on a golden coin through a blizzard",
+    "Testicle wearing a tiny yellow winter hat and scarf",
+    "Testicle eating a yellow popsicle in a snowstorm",
+    "Testicle ice skating on a vertical trading chart",
+    "Testicle fighting a blizzard with a tiny yellow stick",
+    "Testicle waiting for the bus in a heavy yellow snowfall"
+  ];
+
+  const generateMeme = async (overridePrompt?: string) => {
+    const activePrompt = overridePrompt || prompt;
+    if (!activePrompt.trim()) return;
+    
+    setGenerating(true);
+    setError(null);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const contents = {
+        parts: [
+          ...(logoBase64 ? [{
+            inlineData: {
+              data: logoBase64,
+              mimeType: 'image/jpeg',
+            },
+          }] : []),
+          {
+            text: `Generate a funny 2D meme image. 
+            STRICT VISUAL RULES:
+            1. BACKGROUND: Pure solid pitch black (#000000).
+            2. CHARACTER (Named "Testicle"):
+               - HEAD: A thick yellow hand-drawn circular outline. The interior of the head MUST be pitch black.
+               - EYES: Two small solid yellow dots inside the black head (exactly like the provided logo).
+               - BODY: A simple hand-drawn yellow stick-figure body (thin yellow lines for torso, arms, and legs).
+            3. STYLE: Hand-drawn, minimalist, simple 2D scribble/meme aesthetic.
+            4. SCENE: ${activePrompt}.
+            5. COLOR PALETTE: ONLY Black (#000000) and Yellow (#fbbf24). No other colors unless absolutely necessary for the joke (and even then, prefer yellow).
+            Make the drawing look like a fast digital sketch.`,
+          },
+        ],
+      };
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents,
+      });
+
+      let foundImage = false;
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          setResultImage(`data:image/png;base64,${part.inlineData.data}`);
+          foundImage = true;
+          break;
+        }
+      }
+      if (!foundImage) setError("The lab exploded! Try again.");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to cook the meme. Try again!");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRandomMeme = () => {
+    const random = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
+    setPrompt(random);
+    generateMeme(random);
+  };
+
+  return (
+    <section id="generator" className="py-24 px-6 bg-black relative">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Winter Meme Lab</h2>
+        <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest">Black Face • Yellow Outline • Yellow Body</p>
+        
+        <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-6 md:p-10 shadow-[10px_10px_0px_rgba(251,191,36,0.2)]">
+          <div className="flex flex-col gap-6">
+            <div className="relative">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe your winter meme idea (e.g. Testicle in a blizzard...)"
+                className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
+              />
+              <button 
+                onClick={() => setPrompt(randomPrompts[Math.floor(Math.random() * randomPrompts.length)])}
+                className="absolute right-4 bottom-4 text-yellow-400 hover:text-white transition-colors p-2"
+                title="Shuffle Prompt"
+              >
+                <RefreshCw size={24} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => generateMeme()}
+                disabled={generating || !prompt.trim()}
+                className="bg-yellow-400 text-black font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[6px_6px_0px_#78350f]"
+              >
+                {generating ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
+                COOK THE MEME
+              </button>
+              
+              <button
+                onClick={handleRandomMeme}
+                disabled={generating}
+                className="bg-black text-yellow-400 border-4 border-yellow-400 font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50 shadow-[6px_6px_0px_rgba(251,191,36,0.2)]"
+              >
+                <Sparkles size={28} />
+                RANDOM MEME
+              </button>
+            </div>
+
+            {error && <p className="text-red-500 text-center font-bold text-lg uppercase">{error}</p>}
+
+            {resultImage && (
+              <div className="mt-8 animate-in fade-in zoom-in duration-500">
+                <div className="relative group rounded-2xl overflow-hidden border-4 border-yellow-400 bg-black aspect-square max-w-md mx-auto shadow-[15px_15px_0px_rgba(251,191,36,0.1)]">
+                  <img src={resultImage} alt="Generated Meme" className="w-full h-full object-cover" />
+                  <a 
+                    href={resultImage} 
+                    download="testicle-meme.png"
+                    className="absolute top-4 right-4 bg-yellow-400 text-black p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                  >
+                    <Download size={24} />
+                  </a>
+                </div>
+                <p className="text-center text-yellow-400/60 mt-4 text-lg uppercase tracking-tighter italic">Hand-drawn Stick Masterpiece</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -67,6 +236,7 @@ const Navbar: React.FC = () => {
         
         <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
           <a href="#about" className="hover:text-white transition-colors">About</a>
+          <a href="#generator" className="hover:text-white transition-colors">Memes</a>
           <a href="#chart" className="hover:text-white transition-colors">Chart</a>
           <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
             Community <XLogo size={18} />
@@ -86,10 +256,10 @@ const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center">
           <a href="#about" onClick={() => setIsOpen(false)}>About</a>
+          <a href="#generator" onClick={() => setIsOpen(false)}>Memes</a>
           <a href="#chart" onClick={() => setIsOpen(false)}>Chart</a>
           <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
           <a 
@@ -124,7 +294,6 @@ const Hero: React.FC = () => {
              alt="Testicle Hero" 
              className="w-56 h-56 md:w-80 md:h-80 object-contain mx-auto" 
            />
-           {/* Floating badge */}
            <div className="absolute -bottom-4 -right-4 bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rotate-12 text-xl font-bold animate-pulse uppercase">
              $TESTICLE
            </div>
@@ -240,9 +409,9 @@ const App: React.FC = () => {
       <Navbar />
       <Hero />
       <About />
+      <MemeGenerator />
       <Chart />
       
-      {/* Visual Marquee */}
       <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black">
         <div className="flex animate-marquee gap-12">
            {[...Array(10)].map((_, i) => (
