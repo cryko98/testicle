@@ -201,9 +201,9 @@ const MemeGenerator: React.FC = () => {
   };
 
   return (
-    <SectionReveal id="generator" className="py-24 px-6 bg-black relative">
+    <SectionReveal id="meme-lab" className="py-24 px-6 bg-black relative">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Winter Meme Lab</h2>
+        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Meme Lab</h2>
         <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest">Black Face • Yellow Outline • Yellow Body</p>
         
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-6 md:p-10 shadow-[10px_10px_0px_rgba(251,191,36,0.2)]">
@@ -212,7 +212,7 @@ const MemeGenerator: React.FC = () => {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe your winter meme idea (e.g. Testicle in a blizzard...)"
+                placeholder="Describe your meme idea (e.g. Testicle in a blizzard...)"
                 className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
               />
               <motion.button 
@@ -309,7 +309,7 @@ const Navbar: React.FC = () => {
         </motion.div>
         
         <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
-          {["About", "Generator", "How-to-Buy", "Chart"].map((item) => (
+          {["About", "Meme-Lab", "How-to-Buy", "Chart"].map((item) => (
             <motion.a 
               key={item}
               href={`#${item.toLowerCase()}`} 
@@ -348,7 +348,7 @@ const Navbar: React.FC = () => {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center overflow-hidden"
           >
-            {["About", "Generator", "How-to-Buy", "Chart"].map((item) => (
+            {["About", "Meme-Lab", "How-to-Buy", "Chart"].map((item) => (
               <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setIsOpen(false)}>{item.replace("-", " ")}</a>
             ))}
             <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
