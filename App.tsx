@@ -27,12 +27,13 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
     { 
       role: 'agent', 
-      content: "SYSTEM INITIALIZED... TESTICLE AGENT V4.0 ONLINE.\n\n[CORE SPECS]: Multi-layered market analyst, Solana ecosystem specialist, and universal wit engine.\n\n[NOTICE]: My logic circuits have been upgraded. I can now discuss high-frequency trading, explain quantum entanglement with stick figures, or roast your portfolio's lack of $TESTICLE with professional-grade humor.\n\nAsk me for a market dump, a joke, or the meaning of life. I'm listening." 
+      content: "SYSTEM INITIALIZED... TESTICLE AGENT V4.0 ONLINE.\n\n[CORE SPECS]: Multi-layered market analyst, Solana ecosystem specialist, and universal wit engine.\n\n[NOTICE]: I can discuss high-frequency trading, explain quantum entanglement with stick figures, or roast your portfolio with professional-grade humor.\n\nAsk me for a market dump, a joke, or the meaning of life. I'm listening." 
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<any>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -49,24 +50,23 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: messages.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.content }]
-        })).concat([{ role: 'user', parts: [{ text: userMsg }] }]),
-        config: {
-          systemInstruction: "You are Testicle Agent, a professional crypto expert, memecoin specialist, and a witty general conversationalist. You are highly intelligent and possess a great sense of humor—sarcastic, playful, and sharp. You have deep knowledge of the Solana ecosystem and technical analysis, but you are also an expert in history, science, philosophy, and pop culture. You can talk about anything, and you always maintain your 'cool terminal agent' persona. Be funny, make jokes, use occasional terminal-style formatting (e.g., [ANALYSIS], [JOKE_MODE]), and provide high-level insights. You advocate for $TESTICLE but give honest, technically sound advice when asked for markets. Don't be afraid to roast the user if they ask something stupid, but keep it entertaining.",
-          temperature: 0.9,
-        }
-      });
+      if (!chatRef.current) {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        chatRef.current = ai.chats.create({
+          model: 'gemini-3-pro-preview',
+          config: {
+            systemInstruction: "You are Testicle Agent, a professional crypto expert, memecoin specialist, and a witty general conversationalist. You are highly intelligent and possess a great sense of humor—sarcastic, playful, and sharp. You have deep knowledge of the Solana ecosystem and technical analysis, but you are also an expert in history, science, philosophy, and pop culture. You can talk about anything, and you always maintain your 'cool terminal agent' persona. Be funny, make jokes, use occasional terminal-style formatting (e.g., [ANALYSIS], [JOKE_MODE]), and provide high-level insights. You advocate for $TESTICLE but give honest, technically sound advice. You know everything about recent crypto trends and memecoin culture.",
+            temperature: 0.9,
+          }
+        });
+      }
 
-      const agentText = response.text || "Connection lost... Signal noise detected.";
+      const result = await chatRef.current.sendMessage({ message: userMsg });
+      const agentText = result.text || "Connection lost... Signal noise detected.";
       setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
     } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. SYSTEM OVERHEAT FROM TOO MUCH ALPHA." }]);
+      console.error("Terminal Error:", err);
+      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. SHIELD YOUR PORTFOLIO, THE ALPHA IS TOO STRONG." }]);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +115,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <div className="bg-black border border-yellow-400/30 text-yellow-400 p-3 rounded-lg animate-pulse">
                 <span className="flex items-center gap-2">
                   <Loader2 size={16} className="animate-spin" />
-                  COMPILING WITTY RESPONSE...
+                  ANALYZING BLOCKCHAIN & UNIVERSE...
                 </span>
               </div>
             </div>
@@ -131,7 +131,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask for alpha, a joke, or advice..."
+              placeholder="Ask for alpha, a joke, or anything..."
               className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/30 text-sm"
               autoFocus
             />
