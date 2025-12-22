@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Terminal as TerminalIcon, Send, Minus, Square, Key } from 'lucide-react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Terminal as TerminalIcon, Send, Minus, Square } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
@@ -9,8 +10,6 @@ const CTO_LEADER_URL = "https://x.com/tisgambino";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
-
-// The window.aistudio declaration is removed as it is already defined by the execution environment.
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -28,7 +27,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
     { 
       role: 'agent', 
-      content: "TESTICLE AGENT V4.6 ONLINE.\n\nReady for alpha or just some light roasting? Ask me anything." 
+      content: "TESTICLE AGENT V4.5 ONLINE.\n\nReady for alpha or just some light roasting? Ask me anything." 
     }
   ]);
   const [input, setInput] = useState("");
@@ -53,16 +52,18 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
+      // Filter out the initial greeting from the actual API history to prevent "Turn 0 must be user" error
+      // The API only sees history that starts with a user prompt.
       const history = messages.filter(m => messages.indexOf(m) > 0).map(m => ({
         role: m.role === 'user' ? 'user' as const : 'model' as const,
         parts: [{ text: m.content }]
       }));
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: [...history, { role: 'user', parts: [{ text: userMsg }] }],
         config: {
-          systemInstruction: "You are Testicle Agent, a sharp, witty, and slightly sarcastic crypto expert. \n\nRULES:\n1. For casual chat, reply with a SHORT, funny one-liner.\n2. Only give detailed analysis if asked complex technical crypto questions.\n3. Your persona is a high-IQ stick figure agent. Be helpful but edgy.",
+          systemInstruction: "You are Testicle Agent, a sharp, witty, and slightly sarcastic crypto expert. \n\nRULES:\n1. If the user sends a simple greeting (hi, hello, yo) or casual small talk, reply with a SHORT, funny, and edgy one-liner. Don't analyze anything.\n2. Only give detailed, serious, and long technical analysis if the user asks a complex question about crypto markets, $TESTICLE tech, or Solana ecosystems.\n3. Always maintain a great sense of humor. Use occasional terminal tags like [ALPHA_MODE] or [QUICK_ROAST].\n4. Your persona is a high-IQ stick figure agent that lives on the blockchain. Be helpful but never boring.",
           temperature: 0.8,
         }
       });
@@ -71,7 +72,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
     } catch (err) {
       console.error("Terminal Error:", err);
-      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: Critical signal noise. Check API key or connection." }]);
+      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: Critical signal noise. Re-initialize." }]);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +90,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="bg-yellow-400 text-black px-4 py-2 flex items-center justify-between font-bold">
           <div className="flex items-center gap-2">
             <TerminalIcon size={18} />
-            <span>TESTICLE_TERMINAL_v4.6.exe</span>
+            <span>TESTICLE_TERMINAL_v4.5.exe</span>
           </div>
           <div className="flex items-center gap-3">
             <Minus size={18} className="cursor-pointer hover:opacity-70" />
@@ -237,6 +238,7 @@ const DrawingBoard: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Set display size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
@@ -251,6 +253,7 @@ const DrawingBoard: React.FC = () => {
     context.strokeStyle = THEME_YELLOW;
     context.lineWidth = 5;
     
+    // Fill background black initially
     context.fillStyle = "black";
     context.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -286,6 +289,7 @@ const DrawingBoard: React.FC = () => {
     if ('touches' in e) {
       offsetX = e.touches[0].clientX - rect.left;
       offsetY = e.touches[0].clientY - rect.top;
+      // Prevent scrolling while drawing on touch devices
       if (e.cancelable) e.preventDefault();
     } else {
       offsetX = e.nativeEvent.offsetX;
@@ -330,6 +334,7 @@ const DrawingBoard: React.FC = () => {
         
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-4 md:p-8 shadow-[10px_10px_0px_rgba(251,191,36,0.1)]">
           <div className="flex flex-col gap-6">
+            {/* Toolbar */}
             <div className="flex justify-center gap-4">
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -365,6 +370,7 @@ const DrawingBoard: React.FC = () => {
               </motion.button>
             </div>
 
+            {/* Canvas Container */}
             <div className="relative bg-black rounded-2xl overflow-hidden border-2 border-yellow-400/30 cursor-crosshair touch-none">
               <canvas
                 ref={canvasRef}
@@ -394,34 +400,18 @@ const MemeGenerator: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hasKey, setHasKey] = useState(false);
-
-  useEffect(() => {
-    const checkKey = async () => {
-      // @ts-ignore: window.aistudio is provided by the global environment types
-      const selected = await window.aistudio.hasSelectedApiKey();
-      setHasKey(selected);
-    };
-    checkKey();
-  }, []);
-
-  const handleSelectKey = async () => {
-    // @ts-ignore: window.aistudio is provided by the global environment types
-    await window.aistudio.openSelectKey();
-    setHasKey(true);
-  };
 
   const randomPrompts = [
-    "Skiing down a mountain of yellow snow",
-    "Stuck inside a giant yellow snowball",
-    "Ice fishing and catching a golden coin",
-    "Building a snowman that looks exactly like him",
-    "Sledding on a golden coin through a blizzard",
-    "Wearing a tiny yellow winter hat and scarf",
-    "Eating a yellow popsicle in a snowstorm",
-    "Ice skating on a vertical trading chart",
-    "Fighting a blizzard with a tiny yellow stick",
-    "Waiting for the bus in a heavy yellow snowfall"
+    "Testicle skiing down a mountain of yellow snow",
+    "Testicle stuck inside a giant yellow snowball",
+    "Testicle ice fishing and catching a golden coin",
+    "Testicle building a snowman that looks exactly like him",
+    "Testicle sledding on a golden coin through a blizzard",
+    "Testicle wearing a tiny yellow winter hat and scarf",
+    "Testicle eating a yellow popsicle in a snowstorm",
+    "Testicle ice skating on a vertical trading chart",
+    "Testicle fighting a blizzard with a tiny yellow stick",
+    "Testicle waiting for the bus in a heavy yellow snowfall"
   ];
 
   const generateMeme = async (overridePrompt?: string) => {
@@ -432,31 +422,25 @@ const MemeGenerator: React.FC = () => {
     setError(null);
 
     try {
-      // Use the updated GoogleGenAI instance for latest key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      // Sanitize prompt for safety filters
-      const sanitized = activePrompt.replace(/testicle/gi, "stick character");
-
       const response = await ai.models.generateContent({
-        model: hasKey ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image',
+        model: 'gemini-2.5-flash-image',
         contents: {
           parts: [
             {
               text: `Generate a funny minimalist 2D meme image. 
-              CHARACTER: A stylized stick figure hero. 
-              APPEARANCE: Thick yellow hand-drawn circular outline for the head. The interior of the head is solid PITCH BLACK. Inside the black face are two small solid yellow dots for eyes. Simple hand-drawn yellow stick body.
-              SCENE: ${sanitized}.
-              ENVIRONMENT: Pure solid black background.
-              COLOR PALETTE: Strictly Black (#000000) and Yellow (#fbbf24). 
-              STYLE: Simple 2D scribble, rough digital sketch, minimalist meme aesthetic.`,
+              CHARACTER: "Testicle". 
+              APPEARANCE: A thick yellow hand-drawn circular outline for the head. The inside of the head is solid pitch black. Inside the black face are two small solid yellow dots for eyes. He has a simple hand-drawn yellow stick figure body.
+              SCENE: ${activePrompt}.
+              COLOR THEME: Strictly PITCH BLACK background and YELLOW (#fbbf24) for lines and characters.
+              STYLE: Very simple 2D scribble, rough digital sketch, meme aesthetic.`,
             },
           ],
         },
         config: {
           imageConfig: {
             aspectRatio: "1:1",
-            ...(hasKey ? { imageSize: "1K" } : {})
           }
         }
       });
@@ -470,14 +454,10 @@ const MemeGenerator: React.FC = () => {
           break;
         }
       }
-      if (!foundImage) setError("Safety filter triggered or no image returned. Try a different prompt!");
-    } catch (err: any) {
+      if (!foundImage) setError("Model returned text but no image. Try a simpler prompt.");
+    } catch (err) {
       console.error("Meme Generation Error:", err);
-      const msg = err?.message || "Check your API key or connection.";
-      setError(`Failed to cook the meme: ${msg}`);
-      if (msg.includes("Entity was not found") || msg.includes("key")) {
-        setHasKey(false);
-      }
+      setError("Failed to cook the meme. The API might be busy or the key is invalid.");
     } finally {
       setGenerating(false);
     }
@@ -497,30 +477,11 @@ const MemeGenerator: React.FC = () => {
         
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-6 md:p-10 shadow-[10px_10px_0px_rgba(251,191,36,0.2)]">
           <div className="flex flex-col gap-6">
-            {!hasKey && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }} 
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-yellow-400/10 border-2 border-dashed border-yellow-400 p-4 rounded-xl flex flex-col items-center gap-3 mb-4"
-              >
-                <p className="text-yellow-400 text-sm font-bold text-center">
-                  HIGH-QUALITY IMAGE GENERATION REQUIRES A PAID API KEY.
-                </p>
-                <button 
-                  onClick={handleSelectKey}
-                  className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-black text-sm flex items-center gap-2"
-                >
-                  <Key size={16} /> SELECT API KEY
-                </button>
-                <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-[10px] underline opacity-50">BILLING DOCS</a>
-              </motion.div>
-            )}
-
             <div className="relative">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe your meme idea (e.g. In a blizzard...)"
+                placeholder="Describe your meme idea (e.g. Testicle in a blizzard...)"
                 className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
               />
               <motion.button 
@@ -558,7 +519,7 @@ const MemeGenerator: React.FC = () => {
               </motion.button>
             </div>
 
-            {error && <p className="text-red-500 text-center font-bold text-sm uppercase break-words px-4">{error}</p>}
+            {error && <p className="text-red-500 text-center font-bold text-lg uppercase">{error}</p>}
 
             <AnimatePresence>
               {resultImage && (
@@ -984,6 +945,7 @@ const App: React.FC = () => {
         .animate-fall {
           animation: fall linear infinite;
         }
+        /* Custom terminal scrollbar */
         .flex-1::-webkit-scrollbar {
           width: 4px;
         }
