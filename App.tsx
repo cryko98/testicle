@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Terminal as TerminalIcon, Send, Minus, Square } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
@@ -22,6 +22,131 @@ const XLogo = ({ size = 24, className = "" }: { size?: number, className?: strin
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z" />
   </svg>
 );
+
+const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
+    { 
+      role: 'agent', 
+      content: "SYSTEM INITIALIZED... TESTICLE AGENT V4.0 ONLINE.\n\n[CORE SPECS]: Multi-layered market analyst, Solana ecosystem specialist, and universal wit engine.\n\n[NOTICE]: My logic circuits have been upgraded. I can now discuss high-frequency trading, explain quantum entanglement with stick figures, or roast your portfolio's lack of $TESTICLE with professional-grade humor.\n\nAsk me for a market dump, a joke, or the meaning of life. I'm listening." 
+    }
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMsg = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setIsLoading(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: messages.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.content }]
+        })).concat([{ role: 'user', parts: [{ text: userMsg }] }]),
+        config: {
+          systemInstruction: "You are Testicle Agent, a professional crypto expert, memecoin specialist, and a witty general conversationalist. You are highly intelligent and possess a great sense of humor—sarcastic, playful, and sharp. You have deep knowledge of the Solana ecosystem and technical analysis, but you are also an expert in history, science, philosophy, and pop culture. You can talk about anything, and you always maintain your 'cool terminal agent' persona. Be funny, make jokes, use occasional terminal-style formatting (e.g., [ANALYSIS], [JOKE_MODE]), and provide high-level insights. You advocate for $TESTICLE but give honest, technically sound advice when asked for markets. Don't be afraid to roast the user if they ask something stupid, but keep it entertaining.",
+          temperature: 0.9,
+        }
+      });
+
+      const agentText = response.text || "Connection lost... Signal noise detected.";
+      setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. SYSTEM OVERHEAT FROM TOO MUCH ALPHA." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: 20 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 pointer-events-none"
+    >
+      <div className="w-full max-w-2xl h-[600px] bg-[#050505] border-2 border-yellow-400 rounded-lg shadow-[0_0_40px_rgba(251,191,36,0.2)] flex flex-col overflow-hidden pointer-events-auto font-mono">
+        {/* Header */}
+        <div className="bg-yellow-400 text-black px-4 py-2 flex items-center justify-between font-bold">
+          <div className="flex items-center gap-2">
+            <TerminalIcon size={18} />
+            <span>TESTICLE_TERMINAL_v4.0.exe</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Minus size={18} className="cursor-pointer hover:opacity-70" />
+            <Square size={14} className="cursor-pointer hover:opacity-70" />
+            <X size={20} className="cursor-pointer hover:opacity-70" onClick={onClose} />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth bg-[radial-gradient(circle_at_center,_#111_0%,_#000_100%)]"
+        >
+          {messages.map((m, i) => (
+            <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[85%] p-3 rounded-lg ${m.role === 'user' ? 'bg-yellow-400 text-black shadow-[4px_4px_0_#451a03]' : 'bg-black/80 border border-yellow-400/30 text-yellow-400 shadow-[4px_4px_0_rgba(251,191,36,0.1)]'}`}>
+                <div className="text-[10px] opacity-60 mb-1 uppercase tracking-widest font-black">
+                  {m.role === 'user' ? 'ROOT@SOLANA' : 'TESTICLE@AGENT'}
+                </div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {m.content}
+                </div>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex items-start">
+              <div className="bg-black border border-yellow-400/30 text-yellow-400 p-3 rounded-lg animate-pulse">
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  COMPILING WITTY RESPONSE...
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="p-4 bg-black border-t border-yellow-400/20">
+          <div className="relative flex items-center gap-2">
+            <span className="text-yellow-400 font-bold">$</span>
+            <input 
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask for alpha, a joke, or advice..."
+              className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/30 text-sm"
+              autoFocus
+            />
+            <button 
+              onClick={handleSend}
+              className="text-yellow-400 hover:text-white transition-colors"
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className, id }) => (
   <motion.section
@@ -313,7 +438,7 @@ const MemeGenerator: React.FC = () => {
     setError(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_API_KEY || (process.env as any).API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const contents = {
         parts: [
@@ -784,10 +909,30 @@ const Footer: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [terminalOpen, setTerminalOpen] = useState(false);
+
   return (
     <div className="min-h-screen selection:bg-yellow-400 selection:text-black bg-black">
       <BackgroundDrifters />
       <Snowfall />
+
+      {/* Terminal Launcher */}
+      <div className="fixed top-24 left-6 z-[60]">
+        <motion.button
+          whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(251,191,36,0.4)" }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTerminalOpen(true)}
+          className="bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rounded-lg font-mono flex items-center gap-2 text-sm shadow-[4px_4px_0_rgba(251,191,36,0.2)]"
+        >
+          <TerminalIcon size={16} />
+          TESTICLE TERMINAL
+        </motion.button>
+      </div>
+
+      <AnimatePresence>
+        {terminalOpen && <Terminal onClose={() => setTerminalOpen(false)} />}
+      </AnimatePresence>
+
       <Navbar />
       
       <main>
@@ -823,6 +968,17 @@ const App: React.FC = () => {
         }
         .animate-fall {
           animation: fall linear infinite;
+        }
+        /* Custom terminal scrollbar */
+        .flex-1::-webkit-scrollbar {
+          width: 4px;
+        }
+        .flex-1::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .flex-1::-webkit-scrollbar-thumb {
+          background: #fbbf24;
+          border-radius: 2px;
         }
       `}</style>
     </div>
