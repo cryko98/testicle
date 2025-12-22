@@ -27,13 +27,12 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
     { 
       role: 'agent', 
-      content: "SYSTEM INITIALIZED... TESTICLE AGENT V4.0 ONLINE.\n\n[CORE SPECS]: Multi-layered market analyst, Solana ecosystem specialist, and universal wit engine.\n\n[NOTICE]: I can discuss high-frequency trading, explain quantum entanglement with stick figures, or roast your portfolio with professional-grade humor.\n\nAsk me for a market dump, a joke, or the meaning of life. I'm listening." 
+      content: "TESTICLE AGENT V4.5 ONLINE.\n\nReady for alpha or just some light roasting? Ask me anything." 
     }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatRef = useRef<any>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -46,27 +45,34 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     const userMsg = input.trim();
     setInput("");
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const updatedMessages = [...messages, { role: 'user' as const, content: userMsg }];
+    setMessages(updatedMessages);
     setIsLoading(true);
 
     try {
-      if (!chatRef.current) {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        chatRef.current = ai.chats.create({
-          model: 'gemini-3-pro-preview',
-          config: {
-            systemInstruction: "You are Testicle Agent, a professional crypto expert, memecoin specialist, and a witty general conversationalist. You are highly intelligent and possess a great sense of humor—sarcastic, playful, and sharp. You have deep knowledge of the Solana ecosystem and technical analysis, but you are also an expert in history, science, philosophy, and pop culture. You can talk about anything, and you always maintain your 'cool terminal agent' persona. Be funny, make jokes, use occasional terminal-style formatting (e.g., [ANALYSIS], [JOKE_MODE]), and provide high-level insights. You advocate for $TESTICLE but give honest, technically sound advice. You know everything about recent crypto trends and memecoin culture.",
-            temperature: 0.9,
-          }
-        });
-      }
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      // Filter out the initial greeting from the actual API history to prevent "Turn 0 must be user" error
+      // The API only sees history that starts with a user prompt.
+      const history = messages.filter(m => messages.indexOf(m) > 0).map(m => ({
+        role: m.role === 'user' ? 'user' as const : 'model' as const,
+        parts: [{ text: m.content }]
+      }));
 
-      const result = await chatRef.current.sendMessage({ message: userMsg });
-      const agentText = result.text || "Connection lost... Signal noise detected.";
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [...history, { role: 'user', parts: [{ text: userMsg }] }],
+        config: {
+          systemInstruction: "You are Testicle Agent, a sharp, witty, and slightly sarcastic crypto expert. \n\nRULES:\n1. If the user sends a simple greeting (hi, hello, yo) or casual small talk, reply with a SHORT, funny, and edgy one-liner. Don't analyze anything.\n2. Only give detailed, serious, and long technical analysis if the user asks a complex question about crypto markets, $TESTICLE tech, or Solana ecosystems.\n3. Always maintain a great sense of humor. Use occasional terminal tags like [ALPHA_MODE] or [QUICK_ROAST].\n4. Your persona is a high-IQ stick figure agent that lives on the blockchain. Be helpful but never boring.",
+          temperature: 0.8,
+        }
+      });
+
+      const agentText = response.text || "Handshake failed. Try again.";
       setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
     } catch (err) {
       console.error("Terminal Error:", err);
-      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. SHIELD YOUR PORTFOLIO, THE ALPHA IS TOO STRONG." }]);
+      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: Critical signal noise. Re-initialize." }]);
     } finally {
       setIsLoading(false);
     }
@@ -79,12 +85,12 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 pointer-events-none"
     >
-      <div className="w-full max-w-2xl h-[600px] bg-[#050505] border-2 border-yellow-400 rounded-lg shadow-[0_0_40px_rgba(251,191,36,0.2)] flex flex-col overflow-hidden pointer-events-auto font-mono">
+      <div className="w-full max-w-2xl h-[550px] bg-[#050505] border-2 border-yellow-400 rounded-lg shadow-[0_0_40px_rgba(251,191,36,0.2)] flex flex-col overflow-hidden pointer-events-auto font-mono">
         {/* Header */}
         <div className="bg-yellow-400 text-black px-4 py-2 flex items-center justify-between font-bold">
           <div className="flex items-center gap-2">
             <TerminalIcon size={18} />
-            <span>TESTICLE_TERMINAL_v4.0.exe</span>
+            <span>TESTICLE_TERMINAL_v4.5.exe</span>
           </div>
           <div className="flex items-center gap-3">
             <Minus size={18} className="cursor-pointer hover:opacity-70" />
@@ -100,7 +106,7 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         >
           {messages.map((m, i) => (
             <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[85%] p-3 rounded-lg ${m.role === 'user' ? 'bg-yellow-400 text-black shadow-[4px_4px_0_#451a03]' : 'bg-black/80 border border-yellow-400/30 text-yellow-400 shadow-[4px_4px_0_rgba(251,191,36,0.1)]'}`}>
+              <div className={`max-w-[85%] p-3 rounded-lg ${m.role === 'user' ? 'bg-yellow-400 text-black shadow-[4px_4px_0_#451a03]' : 'bg-black/80 border border-yellow-400/30 text-yellow-400'}`}>
                 <div className="text-[10px] opacity-60 mb-1 uppercase tracking-widest font-black">
                   {m.role === 'user' ? 'ROOT@SOLANA' : 'TESTICLE@AGENT'}
                 </div>
@@ -112,11 +118,8 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           ))}
           {isLoading && (
             <div className="flex items-start">
-              <div className="bg-black border border-yellow-400/30 text-yellow-400 p-3 rounded-lg animate-pulse">
-                <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" />
-                  ANALYZING BLOCKCHAIN & UNIVERSE...
-                </span>
+              <div className="text-yellow-400/50 text-xs animate-pulse font-bold tracking-widest uppercase">
+                Incoming Signal...
               </div>
             </div>
           )}
@@ -131,8 +134,8 @@ const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask for alpha, a joke, or anything..."
-              className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/30 text-sm"
+              placeholder="Hi, or ask for serious alpha..."
+              className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/20 text-sm"
               autoFocus
             />
             <button 
@@ -397,25 +400,6 @@ const MemeGenerator: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logoBase64, setLogoBase64] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const response = await fetch(LOGO_URL);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          setLogoBase64(base64);
-        };
-        reader.readAsDataURL(blob);
-      } catch (err) {
-        console.error("Failed to load logo for generator", err);
-      }
-    };
-    fetchLogo();
-  }, []);
 
   const randomPrompts = [
     "Testicle skiing down a mountain of yellow snow",
@@ -440,33 +424,25 @@ const MemeGenerator: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const contents = {
-        parts: [
-          ...(logoBase64 ? [{
-            inlineData: {
-              data: logoBase64,
-              mimeType: 'image/jpeg',
-            },
-          }] : []),
-          {
-            text: `Generate a funny 2D meme image. 
-            STRICT VISUAL RULES:
-            1. BACKGROUND: Pure solid pitch black (#000000).
-            2. CHARACTER (Named "Testicle"):
-               - HEAD: A thick yellow hand-drawn circular outline. The interior of the head MUST be pitch black.
-               - EYES: Two small solid yellow dots inside the black head (exactly like the provided logo).
-               - BODY: A simple hand-drawn yellow stick-figure body (thin yellow lines for torso, arms, and legs).
-            3. STYLE: Hand-drawn, minimalist, simple 2D scribble/meme aesthetic.
-            4. SCENE: ${activePrompt}.
-            5. COLOR PALETTE: ONLY Black (#000000) and Yellow (#fbbf24). No other colors unless absolutely necessary for the joke (and even then, prefer yellow).
-            Make the drawing look like a fast digital sketch.`,
-          },
-        ],
-      };
-
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents,
+        contents: {
+          parts: [
+            {
+              text: `Generate a funny minimalist 2D meme image. 
+              CHARACTER: "Testicle". 
+              APPEARANCE: A thick yellow hand-drawn circular outline for the head. The inside of the head is solid pitch black. Inside the black face are two small solid yellow dots for eyes. He has a simple hand-drawn yellow stick figure body.
+              SCENE: ${activePrompt}.
+              COLOR THEME: Strictly PITCH BLACK background and YELLOW (#fbbf24) for lines and characters.
+              STYLE: Very simple 2D scribble, rough digital sketch, meme aesthetic.`,
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "1:1",
+          }
+        }
       });
 
       let foundImage = false;
@@ -478,10 +454,10 @@ const MemeGenerator: React.FC = () => {
           break;
         }
       }
-      if (!foundImage) setError("The lab exploded! Try again.");
+      if (!foundImage) setError("Model returned text but no image. Try a simpler prompt.");
     } catch (err) {
-      console.error(err);
-      setError("Failed to cook the meme. Try again!");
+      console.error("Meme Generation Error:", err);
+      setError("Failed to cook the meme. The API might be busy or the key is invalid.");
     } finally {
       setGenerating(false);
     }
