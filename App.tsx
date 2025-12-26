@@ -1,12 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2 } from 'lucide-react';
+import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Terminal as TerminalIcon, Send, Minus, Square } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
-const CTO_LEADER_URL = "https://x.com/tisgambino";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
@@ -22,6 +21,125 @@ const XLogo = ({ size = 24, className = "" }: { size?: number, className?: strin
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z" />
   </svg>
 );
+
+const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
+    { role: 'agent', content: "SYSTEM INITIALIZED... TESTICLE AGENT V3.1 ONLINE.\n\nCapabilities: High-frequency market analysis, Solana ecosystem specialist, Memecoin sentiment tracking, technical alpha generation. I am your direct line to the heart of the testicle network.\n\nHow can I assist your portfolio today?" }
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMsg = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setIsLoading(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: messages.map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.content }]
+        })).concat([{ role: 'user', parts: [{ text: userMsg }] }]),
+        config: {
+          systemInstruction: "You are Testicle Agent, a professional crypto expert and memecoin specialist. You have deep knowledge of the Solana ecosystem, technical analysis, and the latest trends. You are helpful, slightly edgy, but technically rigorous. You advocate for $TESTICLE but provide honest, high-level crypto insights. Use terminal-style language occasionally but remain readable.",
+          temperature: 0.7,
+        }
+      });
+
+      const agentText = response.text || "Connection lost... Signal noise detected.";
+      setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. RETRY HANDSHAKE." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: 20 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 pointer-events-none"
+    >
+      <div className="w-full max-w-2xl h-[600px] bg-[#050505] border-2 border-yellow-400 rounded-lg shadow-[0_0_40px_rgba(251,191,36,0.2)] flex flex-col overflow-hidden pointer-events-auto font-mono">
+        <div className="bg-yellow-400 text-black px-4 py-2 flex items-center justify-between font-bold">
+          <div className="flex items-center gap-2">
+            <TerminalIcon size={18} />
+            <span>TESTICLE_TERMINAL_v3.1.exe</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Minus size={18} className="cursor-pointer hover:opacity-70" />
+            <Square size={14} className="cursor-pointer hover:opacity-70" />
+            <X size={20} className="cursor-pointer hover:opacity-70" onClick={onClose} />
+          </div>
+        </div>
+
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
+        >
+          {messages.map((m, i) => (
+            <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[85%] p-3 rounded-lg ${m.role === 'user' ? 'bg-yellow-400 text-black' : 'bg-black border border-yellow-400/30 text-yellow-400'}`}>
+                <div className="text-[10px] opacity-60 mb-1 uppercase tracking-widest">
+                  {m.role === 'user' ? 'ROOT@SOLANA' : 'TESTICLE@AGENT'}
+                </div>
+                <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {m.content}
+                </div>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex items-start">
+              <div className="bg-black border border-yellow-400/30 text-yellow-400 p-3 rounded-lg animate-pulse">
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  ANALYZING BLOCKCHAIN DATA...
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 bg-black border-t border-yellow-400/20">
+          <div className="relative flex items-center gap-2">
+            <span className="text-yellow-400 font-bold">$</span>
+            <input 
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Query the agent..."
+              className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/30 text-sm"
+              autoFocus
+            />
+            <button 
+              onClick={handleSend}
+              className="text-yellow-400 hover:text-white transition-colors"
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className, id }) => (
   <motion.section
@@ -109,36 +227,27 @@ const DrawingBoard: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    // Set display size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
-
     const context = canvas.getContext('2d');
     if (!context) return;
-
     context.scale(2, 2);
     context.lineCap = 'round';
     context.strokeStyle = THEME_YELLOW;
     context.lineWidth = 5;
-    
-    // Fill background black initially
     context.fillStyle = "black";
     context.fillRect(0, 0, canvas.width, canvas.height);
-    
     contextRef.current = context;
   }, []);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas || !contextRef.current) return;
-
     const rect = canvas.getBoundingClientRect();
     let offsetX, offsetY;
-
     if ('touches' in e) {
       offsetX = e.touches[0].clientX - rect.left;
       offsetY = e.touches[0].clientY - rect.top;
@@ -146,7 +255,6 @@ const DrawingBoard: React.FC = () => {
       offsetX = e.nativeEvent.offsetX;
       offsetY = e.nativeEvent.offsetY;
     }
-
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
     setIsDrawing(true);
@@ -154,20 +262,16 @@ const DrawingBoard: React.FC = () => {
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing || !contextRef.current || !canvasRef.current) return;
-
     const rect = canvasRef.current.getBoundingClientRect();
     let offsetX, offsetY;
-
     if ('touches' in e) {
       offsetX = e.touches[0].clientX - rect.left;
       offsetY = e.touches[0].clientY - rect.top;
-      // Prevent scrolling while drawing on touch devices
       if (e.cancelable) e.preventDefault();
     } else {
       offsetX = e.nativeEvent.offsetX;
       offsetY = e.nativeEvent.offsetY;
     }
-
     contextRef.current.strokeStyle = mode === 'pen' ? THEME_YELLOW : 'black';
     contextRef.current.lineWidth = mode === 'pen' ? 5 : 20;
     contextRef.current.lineTo(offsetX, offsetY);
@@ -203,10 +307,8 @@ const DrawingBoard: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Draw your own Testicle character</h2>
         <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest italic">Channel your inner Dev</p>
-        
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-4 md:p-8 shadow-[10px_10px_0px_rgba(251,191,36,0.1)]">
           <div className="flex flex-col gap-6">
-            {/* Toolbar */}
             <div className="flex justify-center gap-4">
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -241,8 +343,6 @@ const DrawingBoard: React.FC = () => {
                 <Download size={24} />
               </motion.button>
             </div>
-
-            {/* Canvas Container */}
             <div className="relative bg-black rounded-2xl overflow-hidden border-2 border-yellow-400/30 cursor-crosshair touch-none">
               <canvas
                 ref={canvasRef}
@@ -256,7 +356,6 @@ const DrawingBoard: React.FC = () => {
                 className="w-full h-[400px] md:h-[500px]"
               />
             </div>
-            
             <p className="text-center text-yellow-400/40 text-sm uppercase tracking-widest font-bold">
               Tip: Draw a circle with two dots and a stick body
             </p>
@@ -308,20 +407,14 @@ const MemeGenerator: React.FC = () => {
   const generateMeme = async (overridePrompt?: string) => {
     const activePrompt = overridePrompt || prompt;
     if (!activePrompt.trim()) return;
-    
     setGenerating(true);
     setError(null);
-
     try {
-      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env?.VITE_API_KEY || (process.env as any).API_KEY });
-      
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
       const contents = {
         parts: [
           ...(logoBase64 ? [{
-            inlineData: {
-              data: logoBase64,
-              mimeType: 'image/jpeg',
-            },
+            inlineData: { data: logoBase64, mimeType: 'image/jpeg' },
           }] : []),
           {
             text: `Generate a funny 2D meme image. 
@@ -333,17 +426,15 @@ const MemeGenerator: React.FC = () => {
                - BODY: A simple hand-drawn yellow stick-figure body (thin yellow lines for torso, arms, and legs).
             3. STYLE: Hand-drawn, minimalist, simple 2D scribble/meme aesthetic.
             4. SCENE: ${activePrompt}.
-            5. COLOR PALETTE: ONLY Black (#000000) and Yellow (#fbbf24). No other colors unless absolutely necessary for the joke (and even then, prefer yellow).
+            5. COLOR PALETTE: ONLY Black (#000000) and Yellow (#fbbf24).
             Make the drawing look like a fast digital sketch.`,
           },
         ],
       };
-
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents,
       });
-
       let foundImage = false;
       const parts = response.candidates?.[0]?.content?.parts || [];
       for (const part of parts) {
@@ -373,7 +464,6 @@ const MemeGenerator: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Meme Lab</h2>
         <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest">Black Face • Yellow Outline • Yellow Body</p>
-        
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-6 md:p-10 shadow-[10px_10px_0px_rgba(251,191,36,0.2)]">
           <div className="flex flex-col gap-6">
             <div className="relative">
@@ -388,43 +478,38 @@ const MemeGenerator: React.FC = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setPrompt(randomPrompts[Math.floor(Math.random() * randomPrompts.length)])}
                 className="absolute right-4 bottom-4 text-yellow-400 hover:text-white transition-colors p-2"
-                title="Shuffle Prompt"
               >
                 <RefreshCw size={24} />
               </motion.button>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.button
                 whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => generateMeme()}
                 disabled={generating || !prompt.trim()}
-                className="bg-yellow-400 text-black font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[6px_6px_0px_#78350f]"
+                className="bg-yellow-400 text-black font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[6px_6px_0px_#78350f]"
               >
                 {generating ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
                 COOK THE MEME
               </motion.button>
-              
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleRandomMeme}
                 disabled={generating}
-                className="bg-black text-yellow-400 border-4 border-yellow-400 font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50 shadow-[6px_6px_0px_rgba(251,191,36,0.2)]"
+                className="bg-black text-yellow-400 border-4 border-yellow-400 font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
               >
                 <Sparkles size={28} />
                 RANDOM MEME
               </motion.button>
             </div>
-
             {error && <p className="text-red-500 text-center font-bold text-lg uppercase">{error}</p>}
-
             <AnimatePresence>
               {resultImage && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   className="mt-8"
                 >
@@ -440,7 +525,6 @@ const MemeGenerator: React.FC = () => {
                       <Download size={24} />
                     </motion.a>
                   </div>
-                  <p className="text-center text-yellow-400/60 mt-4 text-lg uppercase tracking-tighter italic">Hand-drawn Stick Masterpiece</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -459,7 +543,6 @@ const Navbar: React.FC = () => {
     damping: 30,
     restDelta: 0.001
   });
-
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-b-2 border-yellow-500/30 py-4 px-6">
       <motion.div 
@@ -475,7 +558,6 @@ const Navbar: React.FC = () => {
           <img src={LOGO_URL} alt="logo" className="w-14 h-14 object-contain" />
           <span className="text-3xl tracking-tighter text-yellow-400 yellow-glow uppercase">testicle</span>
         </motion.div>
-        
         <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
           {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
             <motion.a 
@@ -502,12 +584,10 @@ const Navbar: React.FC = () => {
             BUY NOW
           </motion.a>
         </div>
-
         <button className="md:hidden text-yellow-400" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X size={32} /> : <Menu size={32} />}
         </button>
       </div>
-
       <AnimatePresence>
         {isOpen && (
           <motion.div 
@@ -520,14 +600,7 @@ const Navbar: React.FC = () => {
               <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setIsOpen(false)}>{item.replace("-", " ")}</a>
             ))}
             <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
-            <a 
-              href={PUMP_FUN_URL} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="bg-yellow-400 text-black py-4 rounded-lg shadow-[4px_4px_0px_#78350f]"
-            >
-              BUY NOW
-            </a>
+            <a href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="bg-yellow-400 text-black py-4 rounded-lg shadow-[4px_4px_0px_#78350f]">BUY NOW</a>
           </motion.div>
         )}
       </AnimatePresence>
@@ -537,13 +610,11 @@ const Navbar: React.FC = () => {
 
 const Hero: React.FC = () => {
   const [copied, setCopied] = useState(false);
-
   const copyCA = () => {
     navigator.clipboard.writeText(CONTRACT_ADDRESS);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
     <section className="pt-40 pb-24 px-6 relative overflow-hidden bg-black flex flex-col items-center">
       <div className="max-w-4xl mx-auto text-center z-10">
@@ -569,7 +640,6 @@ const Hero: React.FC = () => {
              $TESTICLE
            </motion.div>
         </motion.div>
-        
         <motion.h1 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -586,17 +656,14 @@ const Hero: React.FC = () => {
         >
           $testicle
         </motion.p>
-
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.6 }}
           className="flex flex-col items-center gap-8"
         >
-          <div className="bg-yellow-400 text-black border-4 border-black rounded-xl p-4 w-full max-w-xl flex items-center justify-between gap-4 shadow-[6px_6px_0px_rgba(251,191,36,0.4)]">
-            <code className="text-sm md:text-xl font-bold break-all leading-tight">
-              {CONTRACT_ADDRESS}
-            </code>
+          <div className="bg-yellow-400 text-black border-4 border-black rounded-xl p-4 w-full max-w-xl mx-auto flex items-center justify-between gap-4 shadow-[6px_6px_0px_rgba(251,191,36,0.4)]">
+            <code className="text-sm md:text-xl font-bold break-all leading-tight">{CONTRACT_ADDRESS}</code>
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -606,7 +673,6 @@ const Hero: React.FC = () => {
               {copied ? <Check size={24} /> : <Copy size={24} />}
             </motion.button>
           </div>
-
           <div className="flex flex-wrap justify-center gap-6">
             <motion.a 
               whileHover={{ scale: 1.05, y: -5 }}
@@ -621,7 +687,6 @@ const Hero: React.FC = () => {
           </div>
         </motion.div>
       </div>
-
       <motion.div 
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 2 }}
@@ -647,7 +712,7 @@ const About: React.FC = () => {
               This coin was launched by the <span className="text-yellow-400 font-black">$snowball dev</span>, who used <span className="text-yellow-400 font-black">testicle</span> to battle-test the <span className="underline decoration-yellow-400 decoration-4">snowball tech</span>.
             </p>
             <p>
-              It started as a technical demonstration, but it quickly grew into something much bigger. Now, the project is under the visionary leadership of <a href={CTO_LEADER_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 underline decoration-2 underline-offset-8 hover:text-white transition-colors">@tisgambino</a> as the CTO leader.
+              It started as a technical demonstration, but it quickly grew into something much bigger. Driven by technology and fueled by the power of the community.
             </p>
             <motion.p 
               initial={{ opacity: 0 }}
@@ -655,12 +720,9 @@ const About: React.FC = () => {
               transition={{ delay: 0.5 }}
               className="text-yellow-400 text-3xl md:text-4xl pt-6 italic border-t-2 border-yellow-400/20"
             >
-              "The plan is simple: drive this project to a multi-million market cap."
+              "The plan is simple: drive this project to its true potential."
             </motion.p>
           </div>
-          <motion.div 
-            className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-yellow-400/5 to-transparent pointer-events-none group-hover:opacity-100 opacity-0 transition-opacity"
-          />
         </motion.div>
       </div>
     </SectionReveal>
@@ -671,30 +733,29 @@ const HowToBuy: React.FC = () => {
   const steps = [
     {
       title: "CREATE WALLET",
-      desc: "Download Phantom or your wallet of choice from the app store or google play store for free. Desktop users, download the google chrome extension by going to phantom.app.",
+      desc: "Download Phantom or your wallet of choice for free. Desktop users can download the google chrome extension by going to phantom.app.",
       icon: <Wallet size={32} />
     },
     {
       title: "GET SOME SOL",
-      desc: "Have SOL in your wallet to switch to $testicle. If you don’t have any SOL, you can buy directly on phantom, transfer from another wallet, or buy on another exchange and send it to your wallet.",
+      desc: "Have SOL in your wallet to switch to $testicle. You can buy directly on phantom, or transfer from an exchange to your wallet address.",
       icon: <Coins size={32} />
     },
     {
       title: "GO TO PUMP.FUN",
-      desc: "Go to pump.fun and search for the contract address or click the button on this site to go directly to the $testicle page.",
+      desc: "Search for the contract address on pump.fun to find the $testicle page.",
       icon: <Search size={32} />
     },
     {
       title: "SWITCH SOL FOR $TESTICLE",
-      desc: "Paste the CA into pump.fun and confirm the swap. We have zero taxes so you don’t need to worry about buying with a specific slippage, although you may need to increase during times of volatility.",
+      desc: "Confirm the swap on pump.fun. Zero tax project, so you don't need to worry about high slippage.",
       icon: <ShoppingCart size={32} />
     }
   ];
-
   return (
     <SectionReveal id="how-to-buy" className="py-24 px-6 bg-black relative">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-5xl md:text-7xl text-yellow-400 mb-16 text-center yellow-glow uppercase">How to Buy</h2>
+      <div className="max-w-6xl mx-auto text-center">
+        <h2 className="text-5xl md:text-7xl text-yellow-400 mb-16 yellow-glow uppercase">How to Buy</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {steps.map((step, idx) => (
             <motion.div 
@@ -702,8 +763,6 @@ const HowToBuy: React.FC = () => {
               initial={{ opacity: 0, x: idx % 2 === 0 ? -50 : 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              whileHover={{ y: -10, boxShadow: "0px 20px 40px rgba(251, 191, 36, 0.1)" }}
-              transition={{ delay: idx * 0.1, duration: 0.5 }}
               className="bg-black border-4 border-yellow-400 p-8 rounded-3xl shadow-[8px_8px_0px_#451a03] flex flex-col items-start gap-4 h-full"
             >
               <div className="bg-yellow-400 text-black p-4 rounded-xl flex items-center justify-center mb-2">
@@ -714,7 +773,7 @@ const HowToBuy: React.FC = () => {
             </motion.div>
           ))}
         </div>
-        <div className="mt-16 text-center">
+        <div className="mt-16">
           <motion.a 
             whileHover={{ scale: 1.1, rotate: -2 }}
             whileTap={{ scale: 0.9 }}
@@ -767,9 +826,7 @@ const Footer: React.FC = () => {
             <p className="text-lg font-bold opacity-60 uppercase tracking-tighter">by $snowball dev</p>
           </div>
         </div>
-
         <div className="text-center md:text-right">
-          <p className="mb-6 text-2xl font-bold">Led by <a href={CTO_LEADER_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-white underline underline-offset-4 decoration-2">@tisgambino</a></p>
           <div className="flex justify-center md:justify-end gap-10">
             <motion.a whileHover={{ y: -5 }} href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><XLogo size={40} /></motion.a>
             <motion.a whileHover={{ y: -5 }} href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><ExternalLink size={40} /></motion.a>
@@ -784,49 +841,41 @@ const Footer: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [terminalOpen, setTerminalOpen] = useState(false);
   return (
     <div className="min-h-screen selection:bg-yellow-400 selection:text-black bg-black">
-      <BackgroundDrifters />
-      <Snowfall />
+      <BackgroundDrifters /><Snowfall />
+      <div className="fixed top-24 left-6 z-[60]">
+        <motion.button
+          whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(251,191,36,0.4)" }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTerminalOpen(true)}
+          className="bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rounded-lg font-mono flex items-center gap-2 text-sm shadow-[4px_4px_0_rgba(251,191,36,0.2)]"
+        >
+          <TerminalIcon size={16} /> TESTICLE TERMINAL
+        </motion.button>
+      </div>
+      <AnimatePresence>{terminalOpen && <Terminal onClose={() => setTerminalOpen(false)} />}</AnimatePresence>
       <Navbar />
-      
-      <main>
-        <Hero />
-        <About />
-        <MemeGenerator />
-        <DrawingBoard />
-        <HowToBuy />
-        <Chart />
-      </main>
-      
+      <main><Hero /><About /><MemeGenerator /><DrawingBoard /><HowToBuy /><Chart /></main>
       <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black relative z-10">
         <div className="flex animate-marquee gap-12">
            {[...Array(10)].map((_, i) => (
-             <span key={i}>$TESTICLE TESTED THE TECH • CTO BY @TISGAMBINO • MILLIONS SOON • </span>
+             <span key={i}>$TESTICLE TESTED THE TECH • COMMUNITY DRIVEN • MILLIONS SOON • </span>
            ))}
         </div>
       </div>
-
       <Footer />
-
       <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 20s linear infinite;
-        }
-        @keyframes fall {
-          0% { transform: translateY(-100px) rotate(0deg); }
-          100% { transform: translateY(110vh) rotate(360deg); }
-        }
-        .animate-fall {
-          animation: fall linear infinite;
-        }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 20s linear infinite; }
+        @keyframes fall { 0% { transform: translateY(-100px) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
+        .animate-fall { animation: fall linear infinite; }
+        .flex-1::-webkit-scrollbar { width: 4px; }
+        .flex-1::-webkit-scrollbar-track { background: transparent; }
+        .flex-1::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 2px; }
       `}</style>
     </div>
   );
 };
-
 export default App;
