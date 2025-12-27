@@ -274,18 +274,26 @@ const MemeGenerator: React.FC = () => {
     
     try {
       /**
-       * PROFESSIONAL PROMPT ENGINEERING:
-       * We use Pollinations with FLUX model for higher quality.
-       * We explicitly define the "Testicle" character using the logo's visual traits.
+       * ULTIMATE CHARACTER CONSISTENCY PROMPT:
+       * We define the character using the exact geometry of the logo.
        */
-      const visualDescription = "minimalist 2D character named Testicle. VISUAL RULES FOR THE HEAD: The head is a rough, uneven, hand-drawn thick yellow circular outline (#fbbf24). The face inside this outline is SOLID PITCH BLACK. Inside the black face, there are exactly two small solid yellow dots for eyes, placed in an asymmetrical, quirky, and slightly uneven position. This head is iconic and must be consistent. The body is a simple thin yellow stick figure.";
+      const characterVisualIdentity = `
+        STRICT CHARACTER RULES:
+        1. HEAD: A rough, wobbling, uneven, hand-drawn thick yellow circular outline. 
+        2. FACE INTERIOR: The space inside the yellow outline MUST be PURE FLAT SOLID BLACK.
+        3. EYES: Exactly two solid yellow small dots for eyes. 
+        4. EYE POSITION: The eyes MUST be placed asymmetrically, quirky, unevenly, and slightly off-center inside the black face.
+        5. BODY: Simple, primitive thin yellow stick-figure body.
+        6. NO GRADIENTS: Use only flat hex color #fbbf24 (yellow) and #000000 (black).
+      `;
+
       const scene = activePrompt;
-      const aesthetic = "scribble meme style, minimalist 2D digital doodle, thick yellow ink lines, solid black backgrounds, absolute high contrast, trending crypto meme art.";
+      const aesthetic = "2D minimalist scribble meme style, digital ink sketch, rough hand-drawn feel, high-contrast, black and yellow only, simple doodle, trending Solana meme aesthetic.";
       
-      const finalPromptText = `${scene}. Character design: ${visualDescription}. Style: ${aesthetic}. Colors: Strictly Only Yellow #fbbf24 and Black #000000.`;
+      const finalPromptText = `Scene: ${scene}. Main character: ${characterVisualIdentity}. Overall Style: ${aesthetic}. Background: Pure solid black.`;
       const seed = Math.floor(Math.random() * 1000000);
       
-      // Use Flux model for "Pro" quality via Pollinations
+      // Flux via Pollinations for high fidelity following instructions
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
 
       const img = new Image();
@@ -294,7 +302,7 @@ const MemeGenerator: React.FC = () => {
         setGenerating(false);
       };
       img.onerror = () => {
-        setError("The Lab signal is weak. Try again!");
+        setError("The Lab's power is flickering. Try again!");
         setGenerating(false);
       };
       img.src = imageUrl;
