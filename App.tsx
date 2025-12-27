@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, ExternalLink, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Terminal as TerminalIcon, Send, Minus, Square } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
@@ -21,125 +20,6 @@ const XLogo = ({ size = 24, className = "" }: { size?: number, className?: strin
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z" />
   </svg>
 );
-
-const Terminal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [messages, setMessages] = useState<{ role: 'user' | 'agent', content: string }[]>([
-    { role: 'agent', content: "SYSTEM INITIALIZED... TESTICLE AGENT V3.1 ONLINE.\n\nCapabilities: High-frequency market analysis, Solana ecosystem specialist, Memecoin sentiment tracking, technical alpha generation. I am your direct line to the heart of the testicle network.\n\nHow can I assist your portfolio today?" }
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMsg = input.trim();
-    setInput("");
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-    setIsLoading(true);
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: messages.map(m => ({
-          role: m.role === 'user' ? 'user' : 'model',
-          parts: [{ text: m.content }]
-        })).concat([{ role: 'user', parts: [{ text: userMsg }] }]),
-        config: {
-          systemInstruction: "You are Testicle Agent, a professional crypto expert and memecoin specialist. You have deep knowledge of the Solana ecosystem, technical analysis, and the latest trends. You are helpful, slightly edgy, but technically rigorous. You advocate for $TESTICLE but provide honest, high-level crypto insights. Use terminal-style language occasionally but remain readable.",
-          temperature: 0.7,
-        }
-      });
-
-      const agentText = response.text || "Connection lost... Signal noise detected.";
-      setMessages(prev => [...prev, { role: 'agent', content: agentText }]);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'agent', content: "ERROR: CRITICAL API FAILURE. RETRY HANDSHAKE." }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 pointer-events-none"
-    >
-      <div className="w-full max-w-2xl h-[600px] bg-[#050505] border-2 border-yellow-400 rounded-lg shadow-[0_0_40px_rgba(251,191,36,0.2)] flex flex-col overflow-hidden pointer-events-auto font-mono">
-        <div className="bg-yellow-400 text-black px-4 py-2 flex items-center justify-between font-bold">
-          <div className="flex items-center gap-2">
-            <TerminalIcon size={18} />
-            <span>TESTICLE_TERMINAL_v3.1.exe</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Minus size={18} className="cursor-pointer hover:opacity-70" />
-            <Square size={14} className="cursor-pointer hover:opacity-70" />
-            <X size={20} className="cursor-pointer hover:opacity-70" onClick={onClose} />
-          </div>
-        </div>
-
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
-        >
-          {messages.map((m, i) => (
-            <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[85%] p-3 rounded-lg ${m.role === 'user' ? 'bg-yellow-400 text-black' : 'bg-black border border-yellow-400/30 text-yellow-400'}`}>
-                <div className="text-[10px] opacity-60 mb-1 uppercase tracking-widest">
-                  {m.role === 'user' ? 'ROOT@SOLANA' : 'TESTICLE@AGENT'}
-                </div>
-                <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {m.content}
-                </div>
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex items-start">
-              <div className="bg-black border border-yellow-400/30 text-yellow-400 p-3 rounded-lg animate-pulse">
-                <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" />
-                  ANALYZING BLOCKCHAIN DATA...
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 bg-black border-t border-yellow-400/20">
-          <div className="relative flex items-center gap-2">
-            <span className="text-yellow-400 font-bold">$</span>
-            <input 
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Query the agent..."
-              className="flex-1 bg-transparent text-yellow-400 border-none outline-none placeholder:text-yellow-400/30 text-sm"
-              autoFocus
-            />
-            <button 
-              onClick={handleSend}
-              className="text-yellow-400 hover:text-white transition-colors"
-            >
-              <Send size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className, id }) => (
   <motion.section
@@ -371,84 +251,56 @@ const MemeGenerator: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logoBase64, setLogoBase64] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const response = await fetch(LOGO_URL);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          setLogoBase64(base64);
-        };
-        reader.readAsDataURL(blob);
-      } catch (err) {
-        console.error("Failed to load logo for generator", err);
-      }
-    };
-    fetchLogo();
-  }, []);
 
   const randomPrompts = [
-    "Testicle skiing down a mountain of yellow snow",
-    "Testicle stuck inside a giant yellow snowball",
-    "Testicle ice fishing and catching a golden coin",
-    "Testicle building a snowman that looks exactly like him",
-    "Testicle sledding on a golden coin through a blizzard",
-    "Testicle wearing a tiny yellow winter hat and scarf",
-    "Testicle eating a yellow popsicle in a snowstorm",
-    "Testicle ice skating on a vertical trading chart",
-    "Testicle fighting a blizzard with a tiny yellow stick",
-    "Testicle waiting for the bus in a heavy yellow snowfall"
+    "Testicle character skiing down a mountain of yellow snow",
+    "Testicle character stuck inside a giant yellow snowball",
+    "Testicle character ice fishing and catching a golden coin",
+    "Testicle character building a snowman that looks exactly like him",
+    "Testicle character sledding on a golden coin through a blizzard",
+    "Testicle character wearing a tiny yellow winter hat and scarf",
+    "Testicle character eating a yellow popsicle in a snowstorm",
+    "Testicle character ice skating on a vertical trading chart",
+    "Testicle character fighting a blizzard with a tiny yellow stick",
+    "Testicle character waiting for the bus in a heavy yellow snowfall"
   ];
 
   const generateMeme = async (overridePrompt?: string) => {
     const activePrompt = overridePrompt || prompt;
-    if (!activePrompt.trim()) return;
+    if (!activePrompt.trim() || generating) return;
+    
     setGenerating(true);
     setError(null);
+    
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-      const contents = {
-        parts: [
-          ...(logoBase64 ? [{
-            inlineData: { data: logoBase64, mimeType: 'image/jpeg' },
-          }] : []),
-          {
-            text: `Generate a funny 2D meme image. 
-            STRICT VISUAL RULES:
-            1. BACKGROUND: Pure solid pitch black (#000000).
-            2. CHARACTER (Named "Testicle"):
-               - HEAD: A thick yellow hand-drawn circular outline. The interior of the head MUST be pitch black.
-               - EYES: Two small solid yellow dots inside the black head (exactly like the provided logo).
-               - BODY: A simple hand-drawn yellow stick-figure body (thin yellow lines for torso, arms, and legs).
-            3. STYLE: Hand-drawn, minimalist, simple 2D scribble/meme aesthetic.
-            4. SCENE: ${activePrompt}.
-            5. COLOR PALETTE: ONLY Black (#000000) and Yellow (#fbbf24).
-            Make the drawing look like a fast digital sketch.`,
-          },
-        ],
+      /**
+       * PROFESSIONAL PROMPT ENGINEERING:
+       * We use Pollinations with FLUX model for higher quality.
+       * We explicitly define the "Testicle" character using the logo's visual traits.
+       */
+      const visualDescription = "minimalist 2D character named Testicle. VISUAL RULES FOR THE HEAD: The head is a rough, uneven, hand-drawn thick yellow circular outline (#fbbf24). The face inside this outline is SOLID PITCH BLACK. Inside the black face, there are exactly two small solid yellow dots for eyes, placed in an asymmetrical, quirky, and slightly uneven position. This head is iconic and must be consistent. The body is a simple thin yellow stick figure.";
+      const scene = activePrompt;
+      const aesthetic = "scribble meme style, minimalist 2D digital doodle, thick yellow ink lines, solid black backgrounds, absolute high contrast, trending crypto meme art.";
+      
+      const finalPromptText = `${scene}. Character design: ${visualDescription}. Style: ${aesthetic}. Colors: Strictly Only Yellow #fbbf24 and Black #000000.`;
+      const seed = Math.floor(Math.random() * 1000000);
+      
+      // Use Flux model for "Pro" quality via Pollinations
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+
+      const img = new Image();
+      img.onload = () => {
+        setResultImage(imageUrl);
+        setGenerating(false);
       };
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents,
-      });
-      let foundImage = false;
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData) {
-          setResultImage(`data:image/png;base64,${part.inlineData.data}`);
-          foundImage = true;
-          break;
-        }
-      }
-      if (!foundImage) setError("The lab exploded! Try again.");
+      img.onerror = () => {
+        setError("The Lab signal is weak. Try again!");
+        setGenerating(false);
+      };
+      img.src = imageUrl;
     } catch (err) {
       console.error(err);
       setError("Failed to cook the meme. Try again!");
-    } finally {
       setGenerating(false);
     }
   };
@@ -470,7 +322,7 @@ const MemeGenerator: React.FC = () => {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe your meme idea (e.g. Testicle in a blizzard...)"
+                placeholder="Describe your meme idea (e.g. Testicle character in a space suit...)"
                 className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
               />
               <motion.button 
@@ -519,7 +371,8 @@ const MemeGenerator: React.FC = () => {
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       href={resultImage} 
-                      download="testicle-meme.png"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="absolute top-4 right-4 bg-yellow-400 text-black p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     >
                       <Download size={24} />
@@ -829,7 +682,7 @@ const Footer: React.FC = () => {
         <div className="text-center md:text-right">
           <div className="flex justify-center md:justify-end gap-10">
             <motion.a whileHover={{ y: -5 }} href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><XLogo size={40} /></motion.a>
-            <motion.a whileHover={{ y: -5 }} href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><ExternalLink size={40} /></motion.a>
+            <motion.a whileHover={{ y: -5 }} href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><ShoppingCart size={40} /></motion.a>
           </div>
         </div>
       </div>
@@ -841,21 +694,9 @@ const Footer: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  const [terminalOpen, setTerminalOpen] = useState(false);
   return (
     <div className="min-h-screen selection:bg-yellow-400 selection:text-black bg-black">
       <BackgroundDrifters /><Snowfall />
-      <div className="fixed top-24 left-6 z-[60]">
-        <motion.button
-          whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(251,191,36,0.4)" }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setTerminalOpen(true)}
-          className="bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rounded-lg font-mono flex items-center gap-2 text-sm shadow-[4px_4px_0_rgba(251,191,36,0.2)]"
-        >
-          <TerminalIcon size={16} /> TESTICLE TERMINAL
-        </motion.button>
-      </div>
-      <AnimatePresence>{terminalOpen && <Terminal onClose={() => setTerminalOpen(false)} />}</AnimatePresence>
       <Navbar />
       <main><Hero /><About /><MemeGenerator /><DrawingBoard /><HowToBuy /><Chart /></main>
       <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black relative z-10">
