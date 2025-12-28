@@ -1,8 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { HfInference } from "@huggingface/inference";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
@@ -10,29 +9,16 @@ const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=24
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
 
-// Vite client-side exposed variables MUST have VITE_ prefix.
-// This function checks all possible locations for the token.
-const getHFToken = (): string => {
-  // @ts-ignore
-  const viteToken = import.meta.env?.VITE_HF_TOKEN;
-  if (viteToken) return viteToken;
-
-  // @ts-ignore
-  const viteApiKey = import.meta.env?.VITE_API_KEY;
-  if (viteApiKey) return viteApiKey;
-
-  // Fallback for process.env (less common in pure Vite client builds)
-  const processToken = (process.env as any).VITE_HF_TOKEN || process.env.API_KEY || (process.env as any).HF_TOKEN;
-  if (processToken) return processToken;
-
-  return "";
-};
-
-const HF_TOKEN = getHFToken();
-const HF_MODEL = "Tongyi-MAI/Z-Image-Turbo"; 
+const TOGETHER_API_KEY = (import.meta as any).env?.VITE_TOGETHER_API_KEY || ""; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    className={className}
+  >
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.486 3.24H4.298l13.31 17.41z" />
   </svg>
 );
@@ -58,9 +44,22 @@ const BackgroundDrifters: React.FC = () => {
           key={i}
           src={LOGO_URL}
           className="absolute w-32 h-32 md:w-64 md:h-64"
-          initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", rotate: Math.random() * 360 }}
-          animate={{ x: [null, Math.random() * 100 + "%"], y: [null, Math.random() * 100 + "%"], rotate: [null, Math.random() * 360] }}
-          transition={{ duration: Math.random() * 20 + 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+          initial={{ 
+            x: Math.random() * 100 + "%", 
+            y: Math.random() * 100 + "%",
+            rotate: Math.random() * 360
+          }}
+          animate={{ 
+            x: [null, Math.random() * 100 + "%"],
+            y: [null, Math.random() * 100 + "%"],
+            rotate: [null, Math.random() * 360]
+          }}
+          transition={{
+            duration: Math.random() * 20 + 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "linear"
+          }}
         />
       ))}
     </div>
@@ -82,7 +81,20 @@ const Snowfall: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
       {flakes.map((flake) => (
-        <div key={flake.id} className="absolute text-yellow-400 animate-fall" style={{ left: flake.left, top: '-20px', opacity: flake.opacity, fontSize: flake.size, animationDuration: flake.animationDuration, animationDelay: flake.animationDelay }}>●</div>
+        <div
+          key={flake.id}
+          className="absolute text-yellow-400 animate-fall"
+          style={{
+            left: flake.left,
+            top: '-20px',
+            opacity: flake.opacity,
+            fontSize: flake.size,
+            animationDuration: flake.animationDuration,
+            animationDelay: flake.animationDelay,
+          }}
+        >
+          ●
+        </div>
       ))}
     </div>
   );
@@ -149,7 +161,9 @@ const DrawingBoard: React.FC = () => {
   };
 
   const stopDrawing = () => {
-    if (contextRef.current) contextRef.current.closePath();
+    if (contextRef.current) {
+      contextRef.current.closePath();
+    }
     setIsDrawing(false);
   };
 
@@ -178,14 +192,55 @@ const DrawingBoard: React.FC = () => {
         <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-4 md:p-8 shadow-[10px_10px_0px_rgba(251,191,36,0.1)]">
           <div className="flex flex-col gap-6">
             <div className="flex justify-center gap-4">
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMode('pen')} className={`p-4 rounded-xl border-2 transition-all ${mode === 'pen' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}><Pencil size={24} /></motion.button>
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMode('eraser')} className={`p-4 rounded-xl border-2 transition-all ${mode === 'eraser' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}><Eraser size={24} /></motion.button>
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={clearCanvas} className="p-4 rounded-xl border-2 bg-black text-red-500 border-red-500 hover:bg-red-500 hover:text-black transition-all"><Trash2 size={24} /></motion.button>
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={downloadDrawing} className="p-4 rounded-xl border-2 bg-black text-green-500 border-green-500 hover:bg-green-500 hover:text-black transition-all"><Download size={24} /></motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMode('pen')}
+                className={`p-4 rounded-xl border-2 transition-all ${mode === 'pen' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}
+              >
+                <Pencil size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMode('eraser')}
+                className={`p-4 rounded-xl border-2 transition-all ${mode === 'eraser' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-yellow-400'}`}
+              >
+                <Eraser size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={clearCanvas}
+                className="p-4 rounded-xl border-2 bg-black text-red-500 border-red-500 hover:bg-red-500 hover:text-black transition-all"
+              >
+                <Trash2 size={24} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={downloadDrawing}
+                className="p-4 rounded-xl border-2 bg-black text-green-500 border-green-500 hover:bg-green-500 hover:text-black transition-all"
+              >
+                <Download size={24} />
+              </motion.button>
             </div>
             <div className="relative bg-black rounded-2xl overflow-hidden border-2 border-yellow-400/30 cursor-crosshair touch-none">
-              <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} className="w-full h-[400px] md:h-[500px]" />
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="w-full h-[400px] md:h-[500px]"
+              />
             </div>
+            <p className="text-center text-yellow-400/40 text-sm uppercase tracking-widest font-bold">
+              Tip: Draw a circle with two dots and a stick body
+            </p>
           </div>
         </div>
       </div>
@@ -200,77 +255,226 @@ const MemeGenerator: React.FC = () => {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const randomPrompts = [
+    "Testicle character chillin' in a yellow hot tub in a black void",
+    "Testicle character holding a 'BUY' sign during a storm of yellow coins",
+    "Testicle character driving a fast yellow sports car on a black road",
+    "Testicle character meditation under a yellow neon moon",
+    "Testicle character riding a yellow comet through deep black space",
+    "Testicle character playing yellow electric guitar in a dark club",
+    "Testicle character as a yellow superhero flying through black clouds"
+  ];
+
   const generateMeme = async (overridePrompt?: string) => {
-    const activePrompt = (overridePrompt || prompt).trim();
-    if (!activePrompt || generating) return;
+    const activePrompt = overridePrompt || prompt;
+    if (!activePrompt.trim() || generating) return;
     
     setGenerating(true);
     setError(null);
     
     try {
-      if (!HF_TOKEN) {
-        throw new Error("HIÁNYZÓ TOKEN: Nevezd át Vercelen a változót 'VITE_HF_TOKEN'-re és csinálj egy Redeploy-t!");
-      }
+      /**
+       * ULTRA-HIGH FIDELITY PROMPT ENGINEERING:
+       * Defines the character with surgical precision to avoid "AI genericism".
+       */
+      const logoTechnicalDefinition = `
+        CORE CHARACTER DESIGN: 
+        1. THE HEAD: A primitive, non-symmetrical, wobbly, potato-shaped ring. 
+        2. OUTLINE: A thick, uneven golden-yellow (#fbbf24) line that looks like it was drawn with a felt-tip pen. 
+        3. FACE: The interior of the head is a solid, featureless, pure pitch-black (#000000) void. 
+        4. EYES: Exactly two tiny, solid yellow (#fbbf24) blobs for eyes. 
+        5. ASYMMETRY: The eyes are placed unevenly and misaligned within the black area for a quirky, crude MS Paint look.
+        6. NO SHADING: Entirely 2D, no gradients, no 3D effects.
+        7. BODY: Thin, primitive yellow stick-figure body.
+      `;
 
-      const client = new HfInference(HF_TOKEN);
-      const styleRules = `Hand-drawn doodle style, crude yellow marker on pitch black background, 2D simple character.`;
-      const finalInputs = `${styleRules} SCENE: ${activePrompt}. ${memeText ? `TEXT: ${memeText}` : ""}`;
+      const textRequirement = memeText.trim() 
+        ? `The text "${memeText.toUpperCase()}" must be clearly visible, written in a bold, crude, hand-drawn yellow marker font across the top or bottom of the image.` 
+        : "";
 
-      const response = await client.textToImage({
-        model: HF_MODEL,
-        inputs: finalInputs,
-        provider: "fal-ai",
-        parameters: { num_inference_steps: 5 }
-      } as any);
+      const finalPromptText = `
+        SCENE: ${activePrompt}. 
+        ${logoTechnicalDefinition}
+        ${textRequirement}
+        AESTHETIC: High-contrast 2-color art. Background is PURE SOLID BLACK. Every line is Golden-Yellow (#fbbf24). Masterpiece primitive doodle style. Technical: FLUX text rendering enabled.
+      `;
 
-      if (!(response instanceof Blob)) throw new Error("API hiba: nem kép érkezett vissza.");
-      setResultImage(URL.createObjectURL(response));
+      if (TOGETHER_API_KEY) {
+        const response = await fetch("https://api.together.xyz/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "black-forest-labs/FLUX.1-schnell-Free",
+            prompt: finalPromptText,
+            width: 1024,
+            height: 1024,
+            steps: 4,
+            n: 1,
+            response_format: "b64_json"
+          })
+        });
 
-    } catch (err: any) {
-      console.error("Meme generation error:", err);
-      if (err.message?.includes("fetch") || err.name === "TypeError") {
-        setError("FAILED TO FETCH: A böngésző nem éri el a Hugging Face-t. Ellenőrizd a VITE_HF_TOKEN-t és Redeploy-t a Vercelen!");
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        const base64Data = data.data[0].b64_json;
+        setResultImage(`data:image/png;base64,${base64Data}`);
       } else {
-        setError(err.message || "Hiba történt a generálás során.");
+        // Fallback for demo purposes
+        const seed = Math.floor(Math.random() * 1000000);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+        
+        const img = new Image();
+        img.onload = () => setResultImage(imageUrl);
+        img.onerror = () => setError("Engine failed. Check API configuration.");
+        img.src = imageUrl;
       }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong in the lab.");
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleRandomMeme = () => {
+    const random = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
+    setPrompt(random);
+    generateMeme(random);
   };
 
   return (
     <SectionReveal id="meme-lab" className="py-24 px-6 bg-black relative">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
-          <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} className="inline-block bg-yellow-400 text-black p-4 rounded-2xl mb-6 shadow-[0_0_50px_rgba(251,191,36,0.4)]"><Rocket size={40} fill="currentColor" /></motion.div>
+          <motion.div 
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            className="inline-block bg-yellow-400 text-black p-4 rounded-2xl mb-6 shadow-[0_0_50px_rgba(251,191,36,0.4)]"
+          >
+            <Rocket size={40} fill="currentColor" />
+          </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">AI Generator via Fal.ai</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Perfect Character Fidelity Engine</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            <div className="lg:col-span-5 space-y-8">
-              <div className="space-y-4">
-                <label className="text-yellow-400 text-sm font-black uppercase tracking-widest block">Scenario</label>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Testicle in space..." className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-4 text-lg text-yellow-100 outline-none focus:border-yellow-400 h-32" />
-                <label className="text-yellow-400 text-sm font-black uppercase tracking-widest block">Text Overlay</label>
-                <input type="text" value={memeText} onChange={(e) => setMemeText(e.target.value)} placeholder="e.g. TO THE MOON" className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 outline-none focus:border-yellow-400" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
+            {/* Control Panel */}
+            <div className="lg:col-span-5 flex flex-col gap-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
+                    <Wand2 size={16} /> Describe Scenario
+                  </label>
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="e.g. Testicle character in a yellow space suit on the moon..."
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
+                    <Type size={16} /> Text on Image
+                  </label>
+                  <input
+                    type="text"
+                    value={memeText}
+                    onChange={(e) => setMemeText(e.target.value)}
+                    placeholder="e.g. TO THE MOON"
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all"
+                  />
+                </div>
               </div>
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => generateMeme()} disabled={generating || !prompt.trim()} className="w-full bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl shadow-[0_10px_0_#78350f] disabled:opacity-50">
-                {generating ? <Loader2 className="animate-spin mx-auto" /> : "INITIATE ENGINE"}
-              </motion.button>
-              {error && <div className="p-4 bg-red-950/40 border-2 border-red-500 rounded-xl text-red-500 text-sm flex gap-3 italic"><AlertCircle className="shrink-0" /> {error}</div>}
+
+              <div className="flex flex-col gap-4 mt-auto">
+                <motion.button
+                  whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => generateMeme()}
+                  disabled={generating || !prompt.trim()}
+                  className="bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_10px_0_#78350f]"
+                >
+                  {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
+                  GENERATE ASSET
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRandomMeme}
+                  disabled={generating}
+                  className="bg-black text-yellow-400 border-2 border-yellow-400 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
+                >
+                  <Sparkles size={20} />
+                  SURPRISE ME
+                </motion.button>
+              </div>
+              
+              {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm text-center font-bold uppercase">
+                  {error}
+                </div>
+              )}
             </div>
-            <div className="lg:col-span-7 min-h-[400px] bg-black/40 rounded-3xl border-2 border-dashed border-yellow-400/20 flex items-center justify-center relative overflow-hidden">
-              <AnimatePresence mode="wait">
-                {generating ? (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center"><Loader2 size={64} className="animate-spin text-yellow-400 mx-auto mb-4" /><p className="text-yellow-400 uppercase font-bold tracking-widest">Generating...</p></motion.div>
-                ) : resultImage ? (
-                  <motion.img initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={resultImage} className="max-w-full h-full object-contain" />
-                ) : (
-                  <p className="text-yellow-400/20 font-black uppercase text-3xl italic">Ready</p>
-                )}
-              </AnimatePresence>
+
+            {/* Preview Panel */}
+            <div className="lg:col-span-7 h-full min-h-[500px]">
+              <div className="relative h-full w-full bg-black rounded-[2rem] border-2 border-dashed border-yellow-400/10 flex items-center justify-center overflow-hidden shadow-2xl">
+                <AnimatePresence mode="wait">
+                  {generating ? (
+                    <motion.div 
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center gap-8 text-center p-8"
+                    >
+                      <div className="relative">
+                        <Loader2 size={100} className="text-yellow-400 animate-spin" />
+                        <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-200 animate-pulse" size={40} />
+                      </div>
+                      <div>
+                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Logo Specs...</h4>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">Enforcing Potato Geometry</p>
+                      </div>
+                    </motion.div>
+                  ) : resultImage ? (
+                    <motion.div 
+                      key="result"
+                      initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                      className="relative w-full h-full p-4 group"
+                    >
+                      <img 
+                        src={resultImage} 
+                        alt="Generated Meme" 
+                        className="w-full h-full object-contain rounded-2xl shadow-[0_0_80px_rgba(0,0,0,1)]"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
+                        <motion.a 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          href={resultImage} 
+                          download="testicle-meme.png"
+                          className="bg-yellow-400 text-black p-6 rounded-full shadow-2xl"
+                        >
+                          <Download size={40} />
+                        </motion.a>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className="text-center opacity-10 p-12 select-none pointer-events-none">
+                      <Sparkles size={160} className="mx-auto mb-8" />
+                      <p className="text-3xl font-black uppercase tracking-widest italic">Waiting for Input</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
@@ -281,52 +485,333 @@ const MemeGenerator: React.FC = () => {
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-md border-b-2 border-yellow-500/30 py-4 px-6">
+      <motion.div 
+        className="absolute bottom-[-2px] left-0 right-0 h-1 bg-yellow-400 origin-left"
+        style={{ scaleX }}
+      />
       <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-4 cursor-pointer" onClick={() => window.scrollTo(0, 0)}><img src={LOGO_URL} className="w-12 h-12" /><span className="text-2xl text-yellow-400 uppercase">testicle</span></div>
-        <div className="hidden md:flex gap-8 items-center font-bold uppercase">
-          <a href="#about" className="hover:text-white transition-colors">About</a>
-          <a href="#meme-lab" className="hover:text-white transition-colors">Meme Lab</a>
-          <a href="#draw" className="hover:text-white transition-colors">Draw</a>
-          <a href={PUMP_FUN_URL} className="bg-yellow-400 text-black px-6 py-2 rounded-lg">BUY NOW</a>
+        <motion.div 
+          className="flex items-center gap-4 cursor-pointer"
+          whileHover={{ scale: 1.05 }}
+          onClick={() => window.scrollTo(0, 0)}
+        >
+          <img src={LOGO_URL} alt="logo" className="w-14 h-14 object-contain" />
+          <span className="text-3xl tracking-tighter text-yellow-400 yellow-glow uppercase">testicle</span>
+        </motion.div>
+        <div className="hidden md:flex items-center gap-10 font-bold uppercase text-lg">
+          {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
+            <motion.a 
+              key={item}
+              href={`#${item.toLowerCase()}`} 
+              className="hover:text-white transition-colors relative group"
+              whileHover={{ y: -2 }}
+            >
+              {item.replace("-", " ")}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all group-hover:w-full" />
+            </motion.a>
+          ))}
+          <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors flex items-center gap-2">
+            Community <XLogo size={18} />
+          </a>
+          <motion.a 
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileTap={{ scale: 0.95 }}
+            href={PUMP_FUN_URL} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="bg-yellow-400 text-black px-6 py-2 rounded-lg hover:bg-yellow-300 transition-all shadow-[4px_4px_0px_#78350f]"
+          >
+            BUY NOW
+          </motion.a>
         </div>
-        <button className="md:hidden text-yellow-400" onClick={() => setIsOpen(!isOpen)}>{isOpen ? <X /> : <Menu />}</button>
+        <button className="md:hidden text-yellow-400" onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <X size={32} /> : <Menu size={32} />}
+        </button>
       </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden absolute top-full left-0 right-0 bg-black border-b-2 border-yellow-500/30 p-8 flex flex-col gap-8 text-2xl text-center overflow-hidden"
+          >
+            {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setIsOpen(false)}>{item.replace("-", " ")}</a>
+            ))}
+            <a href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer">Community</a>
+            <a href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="bg-yellow-400 text-black py-4 rounded-lg shadow-[4px_4px_0px_#78350f]">BUY NOW</a>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
 
 const Hero: React.FC = () => {
   const [copied, setCopied] = useState(false);
-  const copyCA = () => { navigator.clipboard.writeText(CONTRACT_ADDRESS); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const copyCA = () => {
+    navigator.clipboard.writeText(CONTRACT_ADDRESS);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
-    <section className="pt-40 pb-20 px-6 text-center">
-      <motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} src={LOGO_URL} className="w-64 h-64 mx-auto mb-10 shadow-[0_0_80px_rgba(251,191,36,0.2)] rounded-full" />
-      <h1 className="text-8xl md:text-[12rem] text-yellow-400 uppercase leading-none mb-4">testicle</h1>
-      <div className="bg-yellow-400 text-black font-bold p-4 rounded-xl max-w-xl mx-auto flex justify-between gap-4 mb-8">
-        <code className="text-xs md:text-lg break-all">{CONTRACT_ADDRESS}</code>
-        <button onClick={copyCA}>{copied ? <Check /> : <Copy />}</button>
+    <section className="pt-40 pb-24 px-6 relative overflow-hidden bg-black flex flex-col items-center">
+      <div className="max-w-4xl mx-auto text-center z-10">
+        <motion.div 
+          className="mb-10 inline-block relative"
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        >
+           <motion.img 
+             animate={{ y: [0, -20, 0], rotate: [0, 5, 0, -5, 0] }}
+             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+             src={LOGO_URL} 
+             alt="Testicle Hero" 
+             className="w-56 h-56 md:w-80 md:h-80 object-contain mx-auto" 
+           />
+           <motion.div 
+            initial={{ rotate: 12, scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute -bottom-4 -right-4 bg-black border-2 border-yellow-400 text-yellow-400 px-4 py-2 rotate-12 text-xl font-bold animate-pulse uppercase"
+           >
+             $TESTICLE
+           </motion.div>
+        </motion.div>
+        <motion.h1 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-7xl md:text-[10rem] mb-2 text-yellow-400 tracking-tighter yellow-glow uppercase leading-none"
+        >
+          testicle
+        </motion.h1>
+        <motion.p 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-3xl md:text-5xl font-bold mb-12 tracking-widest uppercase opacity-90"
+        >
+          $testicle
+        </motion.p>
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="flex flex-col items-center gap-8"
+        >
+          <div className="bg-yellow-400 text-black border-4 border-black rounded-xl p-4 w-full max-w-xl mx-auto flex items-center justify-between gap-4 shadow-[6px_6px_0px_rgba(251,191,36,0.4)]">
+            <code className="text-sm md:text-xl font-bold break-all leading-tight">{CONTRACT_ADDRESS}</code>
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={copyCA}
+              className="bg-black text-yellow-400 p-3 rounded-lg shrink-0"
+            >
+              {copied ? <Check size={24} /> : <Copy size={24} />}
+            </motion.button>
+          </div>
+          <div className="flex flex-wrap justify-center gap-6">
+            <motion.a 
+              whileHover={{ scale: 1.05, y: -5 }}
+              whileTap={{ scale: 0.95 }}
+              href={PUMP_FUN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-black border-4 border-yellow-400 px-10 py-5 rounded-xl text-2xl hover:bg-yellow-400 hover:text-black transition-all shadow-[6px_6px_0px_rgba(251,191,36,0.3)]"
+            >
+              🚀 BUY ON PUMP.FUN
+            </motion.a>
+          </div>
+        </motion.div>
       </div>
-      <a href={PUMP_FUN_URL} className="inline-block bg-black border-4 border-yellow-400 px-10 py-5 text-2xl uppercase hover:bg-yellow-400 hover:text-black transition-all">🚀 Buy on Pump.fun</a>
+      <motion.div 
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="mt-20 text-yellow-400/30"
+      >
+        <ChevronDown size={48} />
+      </motion.div>
     </section>
   );
 };
 
-const Footer: React.FC = () => (
-  <footer className="py-10 border-t-2 border-yellow-500/10 text-center opacity-40 uppercase tracking-widest text-sm">© 2025 $TESTICLE • FOR TECHNICAL TESTING ONLY</footer>
-);
+const About: React.FC = () => {
+  return (
+    <SectionReveal id="about" className="py-24 px-6 bg-yellow-400/5 relative">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-12 text-center yellow-glow uppercase">About $testicle</h2>
+        <motion.div 
+          whileHover={{ rotate: 1, scale: 1.01 }}
+          className="bg-black border-4 border-yellow-400 p-10 md:p-16 rounded-3xl shadow-[10px_10px_0px_#451a03] relative overflow-hidden group"
+        >
+          <div className="space-y-8 text-2xl md:text-3xl leading-snug">
+            <p>
+              This coin was launched by the <span className="text-yellow-400 font-black">$snowball dev</span>, who used <span className="text-yellow-400 font-black">testicle</span> to battle-test the <span className="underline decoration-yellow-400 decoration-4">snowball tech</span>.
+            </p>
+            <p>
+              It started as a technical demonstration, but it quickly grew into something much bigger. Driven by technology and fueled by the power of the community.
+            </p>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-yellow-400 text-3xl md:text-4xl pt-6 italic border-t-2 border-yellow-400/20"
+            >
+              "The plan is simple: drive this project to its true potential."
+            </motion.p>
+          </div>
+        </motion.div>
+      </div>
+    </SectionReveal>
+  );
+};
 
-const App: React.FC = () => (
-  <div className="min-h-screen bg-black">
-    <BackgroundDrifters /><Snowfall /><Navbar />
-    <main><Hero /><MemeGenerator /><DrawingBoard /></main>
-    <Footer />
-    <style>{`
-      @keyframes fall { 0% { transform: translateY(-100px); } 100% { transform: translateY(110vh); } }
-      .animate-fall { animation: fall linear infinite; }
-    `}</style>
-  </div>
-);
+const HowToBuy: React.FC = () => {
+  const steps = [
+    {
+      title: "CREATE WALLET",
+      desc: "Download Phantom or your wallet of choice for free. Desktop users can download the google chrome extension by going to phantom.app.",
+      icon: <Wallet size={32} />
+    },
+    {
+      title: "GET SOME SOL",
+      desc: "Have SOL in your wallet to switch to $testicle. You can buy directly on phantom, or transfer from an exchange to your wallet address.",
+      icon: <Coins size={32} />
+    },
+    {
+      title: "GO TO PUMP.FUN",
+      desc: "Search for the contract address on pump.fun to find the $testicle page.",
+      icon: <Search size={32} />
+    },
+    {
+      title: "SWITCH SOL FOR $TESTICLE",
+      desc: "Confirm the swap on pump.fun. Zero tax project, so you don't need to worry about high slippage.",
+      icon: <ShoppingCart size={32} />
+    }
+  ];
+  return (
+    <SectionReveal id="how-to-buy" className="py-24 px-6 bg-black relative">
+      <div className="max-w-6xl mx-auto text-center">
+        <h2 className="text-5xl md:text-7xl text-yellow-400 mb-16 yellow-glow uppercase">How to Buy</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {steps.map((step, idx) => (
+            <motion.div 
+              key={idx} 
+              initial={{ opacity: 0, x: idx % 2 === 0 ? -50 : 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-black border-4 border-yellow-400 p-8 rounded-3xl shadow-[8px_8px_0px_#451a03] flex flex-col items-start gap-4 h-full"
+            >
+              <div className="bg-yellow-400 text-black p-4 rounded-xl flex items-center justify-center mb-2">
+                {step.icon}
+              </div>
+              <h3 className="text-3xl font-black text-yellow-400 leading-tight">STEP {idx + 1}: {step.title}</h3>
+              <p className="text-xl opacity-80 font-bold leading-relaxed">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+        <div className="mt-16">
+          <motion.a 
+            whileHover={{ scale: 1.1, rotate: -2 }}
+            whileTap={{ scale: 0.9 }}
+            href={PUMP_FUN_URL} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="inline-block bg-yellow-400 text-black font-black text-3xl px-12 py-6 rounded-2xl shadow-[10px_10px_0px_#451a03]"
+          >
+            BUY $TESTICLE ON PUMP.FUN
+          </motion.a>
+        </div>
+      </div>
+    </SectionReveal>
+  );
+};
 
+const Chart: React.FC = () => {
+  return (
+    <SectionReveal id="chart" className="py-24 px-6 relative">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-12 text-center yellow-glow uppercase">$testicle Live Chart</h2>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          className="w-full bg-black border-4 border-yellow-400 rounded-3xl overflow-hidden shadow-[10px_10px_0px_#451a03]"
+        >
+          <iframe 
+            src={`https://dexscreener.com/solana/${CONTRACT_ADDRESS}?embed=1&theme=dark&trades=0&info=0`}
+            style={{ width: '100%', height: '600px', border: 'none' }}
+            title="Dexscreener Chart"
+          />
+        </motion.div>
+      </div>
+    </SectionReveal>
+  );
+};
+
+const Footer: React.FC = () => {
+  return (
+    <footer className="py-20 border-t-4 border-yellow-500/20 px-6 bg-black z-10 relative">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+        <div className="flex items-center gap-6">
+          <motion.img 
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 1 }}
+            src={LOGO_URL} alt="logo" className="w-16 h-16 object-contain" 
+          />
+          <div className="text-left">
+            <h3 className="text-4xl text-yellow-400 leading-none uppercase">testicle</h3>
+            <p className="text-lg font-bold opacity-60 uppercase tracking-tighter">by $snowball dev</p>
+          </div>
+        </div>
+        <div className="text-center md:text-right">
+          <div className="flex justify-center md:justify-end gap-10">
+            <motion.a whileHover={{ y: -5 }} href={X_COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><XLogo size={40} /></motion.a>
+            <motion.a whileHover={{ y: -5 }} href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400"><ShoppingCart size={40} /></motion.a>
+          </div>
+        </div>
+      </div>
+      <div className="mt-16 text-center text-lg opacity-40 italic uppercase tracking-widest">
+        © 2025 $testicle. JUST A TESTICLE. NO FINANCIAL ADVICE.
+      </div>
+    </footer>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <div className="min-h-screen selection:bg-yellow-400 selection:text-black bg-black">
+      <BackgroundDrifters /><Snowfall />
+      <Navbar />
+      <main><Hero /><About /><MemeGenerator /><DrawingBoard /><HowToBuy /><Chart /></main>
+      <div className="py-12 bg-yellow-400 text-black flex overflow-hidden whitespace-nowrap font-black text-5xl uppercase select-none border-y-4 border-black relative z-10">
+        <div className="flex animate-marquee gap-12">
+           {[...Array(10)].map((_, i) => (
+             <span key={i}>$TESTICLE TESTED THE TECH • COMMUNITY DRIVEN • MILLIONS SOON • </span>
+           ))}
+        </div>
+      </div>
+      <Footer />
+      <style>{`
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 20s linear infinite; }
+        @keyframes fall { 0% { transform: translateY(-100px) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
+        .animate-fall { animation: fall linear infinite; }
+        .flex-1::-webkit-scrollbar { width: 4px; }
+        .flex-1::-webkit-scrollbar-track { background: transparent; }
+        .flex-1::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 2px; }
+      `}</style>
+    </div>
+  );
+};
 export default App;
