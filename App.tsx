@@ -1,8 +1,21 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle, Key, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { GoogleGenAI } from "@google/genai";
+
+// Extension for window object to support AI Studio utilities
+// Fix: Define AIStudio interface to avoid declaration conflicts and ensure type consistency with existing environment definitions
+declare global {
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    aistudio: AIStudio;
+  }
+}
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
@@ -251,16 +264,27 @@ const MemeGenerator: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isKeySelected, setIsKeySelected] = useState<boolean | null>(null);
 
-  const randomPrompts = [
-    "Testicle character chillin' in a yellow hot tub in a black void",
-    "Testicle character holding a 'BUY' sign during a storm of yellow coins",
-    "Testicle character driving a fast yellow sports car on a black road",
-    "Testicle character meditation under a yellow neon moon",
-    "Testicle character riding a yellow comet through deep black space",
-    "Testicle character playing yellow electric guitar in a dark club",
-    "Testicle character as a yellow superhero flying through black clouds"
-  ];
+  useEffect(() => {
+    const checkKeyStatus = async () => {
+      if (window.aistudio?.hasSelectedApiKey) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        setIsKeySelected(hasKey);
+      } else {
+        // Fallback for direct environment variables if utility is missing
+        setIsKeySelected(!!process.env.API_KEY);
+      }
+    };
+    checkKeyStatus();
+  }, []);
+
+  const handleOpenKeySelection = async () => {
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      setIsKeySelected(true); // Proceed as if selected per race condition rule
+    }
+  };
 
   const generateMeme = async (overridePrompt?: string) => {
     const activePrompt = (overridePrompt || prompt).trim();
@@ -270,36 +294,37 @@ const MemeGenerator: React.FC = () => {
     setError(null);
     
     try {
-      // Create a fresh instance right before call as per guidelines
+      // Must create a fresh instance right before call as per rules
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const technicalSystemRules = `
-        STYLE: Crude marker doodle, simple 2D sketch.
+        STYLE: Crude marker doodle, primitive 2D sketch.
         COLORS: Strictly Pure Black (#000000) and Golden Yellow (#fbbf24).
         CHARACTER: A wobbly, potato-shaped ring head with two tiny yellow dots for eyes. Stick figure body.
         BACKGROUND: Absolute solid black.
-        MANDATORY: High contrast, no gradients, no 3D rendering.
+        MANDATORY: High contrast, no gradients, no 3D effects.
       `;
 
       const textRequirement = memeText.trim() 
-        ? `Include the text "${memeText.toUpperCase()}" written in messy hand-drawn yellow letters.` 
+        ? `Write "${memeText.toUpperCase()}" in messy hand-drawn yellow letters.` 
         : "";
 
       const fullPrompt = `
         ${technicalSystemRules}
         SCENE: ${activePrompt}. 
         ${textRequirement}
-        AESTHETIC: Primitive 2-color art. Background: SOLID BLACK. Drawing: Golden-Yellow (#fbbf24).
+        AESTHETIC: High-quality primitive marker art. Background: SOLID BLACK.
       `;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: {
           parts: [{ text: fullPrompt }],
         },
         config: {
           imageConfig: {
-            aspectRatio: "1:1"
+            aspectRatio: "1:1",
+            imageSize: "1K"
           }
         },
       });
@@ -318,15 +343,20 @@ const MemeGenerator: React.FC = () => {
       }
 
       if (!imageFound) {
-        throw new Error("The Gemini Engine failed to return image data. Check if your API_KEY is valid and has access to Gemini 2.5 Flash Image.");
+        throw new Error("Gemini Pro Image Engine returned no image data. Try a different prompt.");
       }
 
     } catch (err: any) {
-      console.error("Gemini Generation Error:", err);
+      console.error("Gemini Pro Error:", err);
       let msg = err.message || "An unexpected error occurred.";
-      if (msg.includes("401") || msg.includes("API key")) {
-        msg = "INVALID API KEY: The provided key is either missing or incorrect. Check your Vercel Environment Variables.";
+      
+      if (msg.includes("Requested entity was not found")) {
+        setIsKeySelected(false);
+        msg = "Engine configuration lost. Please reconnect your API key.";
+      } else if (msg.includes("API key")) {
+        msg = "API KEY ERROR: Ensure you have selected a valid paid API key in the connection dialog.";
       }
+      
       setError(msg);
     } finally {
       setGenerating(false);
@@ -334,6 +364,13 @@ const MemeGenerator: React.FC = () => {
   };
 
   const handleRandomMeme = () => {
+    const randomPrompts = [
+      "Testicle character in a yellow hot tub in black space",
+      "Testicle character holding a golden rocket ship",
+      "Testicle character surfing on a yellow solar flare",
+      "Testicle character meditating with yellow crystals",
+      "Testicle character driving a yellow race car"
+    ];
     const random = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
     setPrompt(random);
     generateMeme(random);
@@ -351,61 +388,90 @@ const MemeGenerator: React.FC = () => {
             <Rocket size={40} fill="currentColor" />
           </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Gemini 2.5 Flash Image Engine</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Gemini 3 Pro Image Engine</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
             <div className="lg:col-span-5 flex flex-col gap-8">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
-                    <Wand2 size={16} /> Describe Scenario
-                  </label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="e.g. Testicle character in a yellow space suit on the moon..."
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
-                  />
+              
+              {!isKeySelected ? (
+                <div className="flex-1 flex flex-col justify-center items-center gap-6 p-8 bg-black/40 border-2 border-yellow-400/20 rounded-3xl text-center">
+                  <Key size={64} className="text-yellow-400 animate-pulse" />
+                  <div>
+                    <h4 className="text-2xl font-black text-yellow-400 uppercase mb-2">Engine Disconnected</h4>
+                    <p className="text-yellow-400/60 text-sm mb-6">A paid API key is required to access Gemini 3 Pro features.</p>
+                    <a 
+                      href="https://ai.google.dev/gemini-api/docs/billing" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs text-yellow-400/40 hover:text-yellow-400 transition-colors underline mb-6"
+                    >
+                      Billing Requirements <ExternalLink size={12} />
+                    </a>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleOpenKeySelection}
+                    className="w-full bg-yellow-400 text-black font-black py-4 rounded-xl flex items-center justify-center gap-2"
+                  >
+                    CONNECT API KEY
+                  </motion.button>
                 </div>
+              ) : (
+                <div className="space-y-6 flex-1">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
+                      <Wand2 size={16} /> Describe Scenario
+                    </label>
+                    <textarea
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="e.g. Testicle character in a yellow space suit on the moon..."
+                      className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
-                    <Type size={16} /> Text Overlay
-                  </label>
-                  <input
-                    type="text"
-                    value={memeText}
-                    onChange={(e) => setMemeText(e.target.value)}
-                    placeholder="e.g. TO THE MOON"
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
-                  />
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
+                      <Type size={16} /> Text Overlay
+                    </label>
+                    <input
+                      type="text"
+                      value={memeText}
+                      onChange={(e) => setMemeText(e.target.value)}
+                      placeholder="e.g. TO THE MOON"
+                      className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex flex-col gap-4 mt-auto">
-                <motion.button
-                  whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => generateMeme()}
-                  disabled={generating || !prompt.trim()}
-                  className="bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_10px_0_#78350f]"
-                >
-                  {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
-                  INITIATE ENGINE
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleRandomMeme}
-                  disabled={generating}
-                  className="bg-black text-yellow-400 border-2 border-yellow-400 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
-                >
-                  <Sparkles size={20} />
-                  RANDOM IDEA
-                </motion.button>
-              </div>
+              {isKeySelected && (
+                <div className="flex flex-col gap-4 mt-auto">
+                  <motion.button
+                    whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => generateMeme()}
+                    disabled={generating || !prompt.trim()}
+                    className="bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_10px_0_#78350f]"
+                  >
+                    {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
+                    INITIATE ENGINE
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleRandomMeme}
+                    disabled={generating}
+                    className="bg-black text-yellow-400 border-2 border-yellow-400 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
+                  >
+                    <Sparkles size={20} />
+                    RANDOM IDEA
+                  </motion.button>
+                </div>
+              )}
               
               {error && (
                 <div className="p-5 bg-red-950/40 border-2 border-red-500 rounded-2xl text-red-400 text-sm flex gap-3 items-start shadow-[0_0_20px_rgba(239,68,68,0.2)]">
@@ -435,7 +501,7 @@ const MemeGenerator: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Neural Core...</h4>
-                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">GEMINI 2.5 FLASH ACTIVE</p>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">GEMINI 3 PRO ACTIVE</p>
                       </div>
                     </motion.div>
                   ) : resultImage ? (
