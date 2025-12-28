@@ -124,45 +124,43 @@ const DrawingBoard: React.FC = () => {
     contextRef.current = context;
   }, []);
 
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+  const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
-    if (!canvas || !contextRef.current) return;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    let offsetX, offsetY;
     if ('touches' in e) {
-      offsetX = e.touches[0].clientX - rect.left;
-      offsetY = e.touches[0].clientY - rect.top;
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      };
     } else {
-      offsetX = (e as React.MouseEvent).nativeEvent.offsetX;
-      offsetY = (e as React.MouseEvent).nativeEvent.offsetY;
+      return {
+        x: (e as React.MouseEvent).nativeEvent.offsetX,
+        y: (e as React.MouseEvent).nativeEvent.offsetY
+      };
     }
+  };
+
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!contextRef.current) return;
+    const { x, y } = getCoordinates(e);
     contextRef.current.beginPath();
-    contextRef.current.moveTo(offsetX, offsetY);
+    contextRef.current.moveTo(x, y);
     setIsDrawing(true);
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || !contextRef.current || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    let offsetX, offsetY;
-    if ('touches' in e) {
-      offsetX = e.touches[0].clientX - rect.left;
-      offsetY = e.touches[0].clientY - rect.top;
-      if (e.cancelable) e.preventDefault();
-    } else {
-      offsetX = (e as React.MouseEvent).nativeEvent.offsetX;
-      offsetY = (e as React.MouseEvent).nativeEvent.offsetY;
-    }
+    if (!isDrawing || !contextRef.current) return;
+    const { x, y } = getCoordinates(e);
     contextRef.current.strokeStyle = mode === 'pen' ? THEME_YELLOW : 'black';
     contextRef.current.lineWidth = mode === 'pen' ? 5 : 20;
-    contextRef.current.lineTo(offsetX, offsetY);
+    contextRef.current.lineTo(x, y);
     contextRef.current.stroke();
+    if ('touches' in e && e.cancelable) e.preventDefault();
   };
 
   const stopDrawing = () => {
-    if (contextRef.current) {
-      contextRef.current.closePath();
-    }
+    if (contextRef.current) contextRef.current.closePath();
     setIsDrawing(false);
   };
 
@@ -272,33 +270,32 @@ const MemeGenerator: React.FC = () => {
     setError(null);
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+      // Create a fresh instance right before call as per guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const logoTechnicalDefinition = `
-        CORE CHARACTER DESIGN RULES: 
-        1. THE HEAD: A primitive, non-symmetrical, wobbly, potato-shaped ring. 
-        2. OUTLINE: A thick, uneven golden-yellow (#fbbf24) line.
-        3. FACE: Solid pure pitch-black (#000000). 
-        4. EYES: Exactly two tiny, solid yellow (#fbbf24) dots, misaligned.
-        5. STYLE: 2D crude doodle, no shading, no 3D effects.
-        6. BACKGROUND: Absolute solid black.
+      const technicalSystemRules = `
+        STYLE: Crude marker doodle, simple 2D sketch.
+        COLORS: Strictly Pure Black (#000000) and Golden Yellow (#fbbf24).
+        CHARACTER: A wobbly, potato-shaped ring head with two tiny yellow dots for eyes. Stick figure body.
+        BACKGROUND: Absolute solid black.
+        MANDATORY: High contrast, no gradients, no 3D rendering.
       `;
 
       const textRequirement = memeText.trim() 
-        ? `Write the text "${memeText.toUpperCase()}" in crude, hand-drawn yellow letters.` 
+        ? `Include the text "${memeText.toUpperCase()}" written in messy hand-drawn yellow letters.` 
         : "";
 
-      const finalPromptText = `
-        ${logoTechnicalDefinition}
+      const fullPrompt = `
+        ${technicalSystemRules}
         SCENE: ${activePrompt}. 
         ${textRequirement}
-        AESTHETIC: High-contrast 2-color art. Background: SOLID BLACK. Lines: Golden-Yellow (#fbbf24). Masterpiece primitive marker doodle.
+        AESTHETIC: Primitive 2-color art. Background: SOLID BLACK. Drawing: Golden-Yellow (#fbbf24).
       `;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
-          parts: [{ text: finalPromptText }],
+          parts: [{ text: fullPrompt }],
         },
         config: {
           imageConfig: {
@@ -307,23 +304,30 @@ const MemeGenerator: React.FC = () => {
         },
       });
 
-      let foundImage = false;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          const base64Data = part.inlineData.data;
-          setResultImage(`data:image/png;base64,${base64Data}`);
-          foundImage = true;
-          break;
+      let imageFound = false;
+      const candidate = response.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData) {
+            const base64Data = part.inlineData.data;
+            setResultImage(`data:image/png;base64,${base64Data}`);
+            imageFound = true;
+            break;
+          }
         }
       }
 
-      if (!foundImage) {
-        throw new Error("No image data received from Gemini Engine.");
+      if (!imageFound) {
+        throw new Error("The Gemini Engine failed to return image data. Check if your API_KEY is valid and has access to Gemini 2.5 Flash Image.");
       }
 
     } catch (err: any) {
-      console.error("Gemini Image Error:", err);
-      setError(err.message || "Engine failure. Check API configuration or prompt.");
+      console.error("Gemini Generation Error:", err);
+      let msg = err.message || "An unexpected error occurred.";
+      if (msg.includes("401") || msg.includes("API key")) {
+        msg = "INVALID API KEY: The provided key is either missing or incorrect. Check your Vercel Environment Variables.";
+      }
+      setError(msg);
     } finally {
       setGenerating(false);
     }
@@ -347,7 +351,7 @@ const MemeGenerator: React.FC = () => {
             <Rocket size={40} fill="currentColor" />
           </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Gemini AI Image Engine</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Gemini 2.5 Flash Image Engine</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
@@ -430,7 +434,7 @@ const MemeGenerator: React.FC = () => {
                         <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-200 animate-pulse" size={40} />
                       </div>
                       <div>
-                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Engine...</h4>
+                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Neural Core...</h4>
                         <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">GEMINI 2.5 FLASH ACTIVE</p>
                       </div>
                     </motion.div>
@@ -805,4 +809,5 @@ const App: React.FC = () => {
     </div>
   );
 };
+
 export default App;
