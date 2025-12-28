@@ -11,8 +11,33 @@ const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=24
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
 
-// Try to get token from both standard API_KEY or user-defined HF_TOKEN
-const HF_TOKEN = process.env.API_KEY || (process.env as any).HF_TOKEN; 
+// Robust environment variable retrieval for client-side apps
+const getEnv = (key: string): string => {
+  try {
+    // 1. Try process.env (Standard)
+    if (typeof process !== 'undefined' && process.env && (process.env as any)[key]) {
+      return (process.env as any)[key];
+    }
+    // 2. Try import.meta.env (Vite standard)
+    // @ts-ignore
+    if (import.meta.env && import.meta.env[key]) {
+      // @ts-ignore
+      return import.meta.env[key];
+    }
+    // 3. Try VITE_ prefixed (Vite client-side exposure)
+    // @ts-ignore
+    if (import.meta.env && import.meta.env[`VITE_${key}`]) {
+      // @ts-ignore
+      return import.meta.env[`VITE_${key}`];
+    }
+  } catch (e) {
+    console.warn(`Environment variable ${key} could not be accessed safely.`);
+  }
+  return "";
+};
+
+// Use process.env.API_KEY as per system instructions, with fallbacks for HF_TOKEN
+const HF_TOKEN = getEnv('API_KEY') || getEnv('HF_TOKEN') || "";
 const HF_MODEL = "Tongyi-MAI/Z-Image-Turbo"; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -273,58 +298,53 @@ const MemeGenerator: React.FC = () => {
     const activePrompt = (overridePrompt || prompt).trim();
     if (!activePrompt || generating) return;
     
-    if (!HF_TOKEN) {
-      setError("API Key (HF_TOKEN) missing. Please check Vercel environment variables.");
-      return;
-    }
-
     setGenerating(true);
     setError(null);
     
     try {
+      // Create client - it will use the token if available
       const client = new HfInference(HF_TOKEN);
       
       const logoRules = `
-        STYLE: Crude 2D doodle.
-        BACKGROUND: Pure solid pitch black (#000000).
-        CHARACTER: 2D marker doodle.
-        HEAD: potato-like bumpy yellow (#fbbf24) marker outline.
-        FACE: Pure black (#000000).
-        EYES: Two small yellow (#fbbf24) dots.
-        BODY: Simple yellow (#fbbf24) stick lines.
-        COLORS: Strictly #fbbf24 and #000000.
+        STYLE: Crude 2D marker doodle.
+        COLORS: Strictly yellow (#fbbf24) and black (#000000).
+        CHARACTER: 2D stick figure with potato-like head outline.
+        BACKGROUND: Absolute solid black.
       `;
 
       const textRequirement = memeText.trim() 
-        ? `TEXT: "${memeText.toUpperCase()}" in yellow marker font.` 
+        ? `MANDATORY TEXT ON IMAGE: "${memeText.toUpperCase()}" in hand-drawn yellow letters.` 
         : "";
 
-      const finalInputs = `${logoRules}. SCENE: ${activePrompt}. ${textRequirement}`;
+      const finalInputs = `${logoRules} SCENE: ${activePrompt}. ${textRequirement}`;
 
-      // Using the exact user-provided setup with 'as any' for TS compatibility
-      const imageBlob = await client.textToImage({
+      // Force type casting to bypass parameter restrictions and use specific provider
+      const requestOptions: any = {
         provider: "fal-ai",
         model: HF_MODEL,
         inputs: finalInputs,
         parameters: { 
-          num_inference_steps: 5, 
+          num_inference_steps: 5,
         }
-      } as any);
+      };
+
+      const imageBlob = await client.textToImage(requestOptions);
 
       if (!(imageBlob instanceof Blob)) {
-        throw new Error("Invalid response from Hugging Face. Expected an image blob.");
+        throw new Error("API returned invalid data format.");
       }
 
       const imageUrl = URL.createObjectURL(imageBlob);
       setResultImage(imageUrl);
 
     } catch (err: any) {
-      console.error("HF Error:", err);
-      // More descriptive error messages
-      if (err.message?.includes("fetch")) {
-        setError("Network Error: Could not reach Hugging Face. Check your token or API limits.");
+      console.error("HF Generation Error:", err);
+      if (err.message?.includes("fetch") || err.name === "TypeError") {
+        setError("FAILED TO FETCH: API key is likely missing or model is busy. Check Vercel 'HF_TOKEN' or 'API_KEY' variable.");
+      } else if (err.status === 401) {
+        setError("UNAUTHORIZED: Your HF_TOKEN is invalid or not exposed to the client.");
       } else {
-        setError(err.message || "An unexpected error occurred during generation.");
+        setError(err.message || "An unexpected error occurred.");
       }
     } finally {
       setGenerating(false);
@@ -349,7 +369,7 @@ const MemeGenerator: React.FC = () => {
             <Rocket size={40} fill="currentColor" />
           </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">AI Generator powered by Fal.ai</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">AI Generator via Fal.ai</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
@@ -407,10 +427,10 @@ const MemeGenerator: React.FC = () => {
               
               {error && (
                 <div className="p-5 bg-red-950/40 border-2 border-red-500 rounded-2xl text-red-400 text-sm flex gap-3 items-start shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                  <AlertCircle className="shrink-0" size={20} />
+                  <AlertCircle className="shrink-0 text-red-500" size={24} />
                   <div className="flex flex-col">
-                    <span className="font-black uppercase tracking-widest mb-1 text-red-500">Error Encountered</span>
-                    <span className="font-bold">{error}</span>
+                    <span className="font-black uppercase tracking-widest mb-1 text-red-500">Error Report</span>
+                    <span className="font-bold leading-tight">{error}</span>
                   </div>
                 </div>
               )}
