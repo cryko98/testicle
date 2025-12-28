@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { InferenceClient } from "@huggingface/inference";
+// Use HfInference as it is the correct export name from the library, aliased to InferenceClient as requested
+import { HfInference as InferenceClient } from "@huggingface/inference";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
@@ -10,9 +11,9 @@ const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=24
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
 
-// HF CONFIG
+// HF CONFIG - Using process.env.API_KEY as the token per system requirements
 const HF_TOKEN = process.env.API_KEY; 
-const HF_MODEL = "black-forest-labs/FLUX.1-schnell"; // Schnell is optimized for inference speed
+const HF_MODEL = "Tongyi-MAI/Z-Image-Turbo"; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -276,7 +277,7 @@ const MemeGenerator: React.FC = () => {
     setError(null);
     
     try {
-      // Initialize HF client with provided snippet style
+      // Using InferenceClient (HfInference alias) with the token
       const client = new InferenceClient(HF_TOKEN);
       
       const logoRules = `
@@ -297,11 +298,13 @@ const MemeGenerator: React.FC = () => {
 
       const finalInputs = `A crude 2D doodle. ${logoRules}. SCENE: ${activePrompt}. ${textRequirement}`;
 
+      // Updated as requested: provider fal-ai, model Tongyi-MAI/Z-Image-Turbo, 5 steps
       const imageBlob = await client.textToImage({
+        provider: "fal-ai",
         model: HF_MODEL,
         inputs: finalInputs,
         parameters: { 
-          num_inference_steps: 4, // Fast for Schnell
+          num_inference_steps: 5, 
         }
       });
 
@@ -310,7 +313,7 @@ const MemeGenerator: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Engine busy. Please ensure HF API token is valid.");
+      setError(err.message || "Engine error. Please ensure HF API token is valid.");
     } finally {
       setGenerating(false);
     }
@@ -414,7 +417,7 @@ const MemeGenerator: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">HF Client Syncing...</h4>
-                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">FLUX.1 SCHNELL MODEL</p>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">FLUX.1 DEV MODEL</p>
                       </div>
                     </motion.div>
                   ) : resultImage ? (
