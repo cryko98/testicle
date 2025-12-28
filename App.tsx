@@ -238,7 +238,6 @@ const MemeGenerator: React.FC = () => {
     generateMeme(scenario);
   };
 
-  // Helper to fetch logo and convert to base64 for referencing
   const getLogoBase64 = async () => {
     try {
       const response = await fetch(LOGO_URL);
@@ -266,7 +265,6 @@ const MemeGenerator: React.FC = () => {
       
       const contents: any[] = [];
       
-      // If we could fetch the logo, send it as a reference
       if (logoData) {
         contents.push({
           inlineData: {
@@ -303,7 +301,7 @@ const MemeGenerator: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong. The API key might be invalid or reaching limits.");
+      setError(err.message || "Something went wrong. The API key might be invalid.");
     } finally {
       setGenerating(false);
     }
@@ -423,7 +421,12 @@ const App: React.FC = () => (
     <BackgroundDrifters /><Snowfall /><Navbar />
     <main>
       <section className="pt-48 pb-24 px-6 text-center">
-        <motion.img animate={{ y: [0, -20, 0], rotate: [0, 5, -5, 0] }} transition={{ duration: 6, repeat: Infinity }} src={LOGO_URL} className="w-56 h-56 mx-auto mb-12 rounded-full border-4 border-yellow-400 shadow-[0_0_30px_rgba(251,191,36,0.3)]" />
+        <motion.img 
+          animate={{ y: [0, -20, 0], rotate: [0, 5, -5, 0] }} 
+          transition={{ duration: 6, repeat: Infinity }} 
+          src={LOGO_URL} 
+          className="w-56 h-56 mx-auto mb-12" 
+        />
         <h1 className="text-8xl md:text-[12rem] mb-4 yellow-glow uppercase leading-none tracking-tighter">testicle</h1>
         <p className="text-3xl md:text-5xl font-black mb-16 uppercase opacity-90 tracking-[0.3em]">$testicle</p>
         <div className="bg-yellow-400 text-black border-4 border-black rounded-xl p-4 max-w-xl mx-auto flex items-center justify-between gap-4 shadow-[8px_8px_0px_rgba(251,191,36,0.4)] mb-12">
