@@ -357,7 +357,7 @@ const MemeGenerator: React.FC = () => {
           >
             <Rocket size={40} fill="currentColor" />
           </motion.div>
-          <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">Together Meme Engine</h2>
+          <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
           <p className="text-xl opacity-60 uppercase tracking-[0.25em]">High-Speed Asset Generation</p>
         </div>
 
