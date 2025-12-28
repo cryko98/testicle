@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-// A helyes export név HfInference
+// The correct export is HfInference
 import { HfInference } from "@huggingface/inference";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
@@ -11,8 +11,8 @@ const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=24
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
 
-// Az API kulcsot a rendszer a process.env.API_KEY-ben biztosítja
-const HF_TOKEN = process.env.API_KEY; 
+// Try to get token from both standard API_KEY or user-defined HF_TOKEN
+const HF_TOKEN = process.env.API_KEY || (process.env as any).HF_TOKEN; 
 const HF_MODEL = "Tongyi-MAI/Z-Image-Turbo"; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
@@ -270,36 +270,38 @@ const MemeGenerator: React.FC = () => {
   ];
 
   const generateMeme = async (overridePrompt?: string) => {
-    const activePrompt = overridePrompt || prompt;
-    if (!activePrompt.trim() || generating) return;
+    const activePrompt = (overridePrompt || prompt).trim();
+    if (!activePrompt || generating) return;
     
+    if (!HF_TOKEN) {
+      setError("API Key (HF_TOKEN) missing. Please check Vercel environment variables.");
+      return;
+    }
+
     setGenerating(true);
     setError(null);
     
     try {
-      // Használjuk a HfInference osztályt
       const client = new HfInference(HF_TOKEN);
       
       const logoRules = `
-        ABSOLUTE CHARACTER FIDELITY RULES:
-        - BACKGROUND: Pure solid pitch black (#000000).
-        - CHARACTER: A crude 2D marker doodle of a stick figure.
-        - HEAD SHAPE: A potato-like, irregular, jagged ring. It must be bumpy and non-circular.
-        - OUTLINE: Thick, shaky, uneven hand-drawn yellow (#fbbf24) marker line.
-        - FACE: The inside of the head ring is PURE SOLID BLACK (#000000).
-        - EYES: Two small yellow (#fbbf24) dots, placed asymmetrically and unevenly.
-        - BODY: Simple yellow (#fbbf24) stick lines.
-        - COLORS: Strictly only #fbbf24 (yellow) and #000000 (black). No gradients or shading.
+        STYLE: Crude 2D doodle.
+        BACKGROUND: Pure solid pitch black (#000000).
+        CHARACTER: 2D marker doodle.
+        HEAD: potato-like bumpy yellow (#fbbf24) marker outline.
+        FACE: Pure black (#000000).
+        EYES: Two small yellow (#fbbf24) dots.
+        BODY: Simple yellow (#fbbf24) stick lines.
+        COLORS: Strictly #fbbf24 and #000000.
       `;
 
       const textRequirement = memeText.trim() 
-        ? `TEXT OVERLAY: Render the phrase "${memeText.toUpperCase()}" in a messy, hand-drawn yellow marker font (#fbbf24) on the image.` 
+        ? `TEXT: "${memeText.toUpperCase()}" in yellow marker font.` 
         : "";
 
-      const finalInputs = `A crude 2D doodle. ${logoRules}. SCENE: ${activePrompt}. ${textRequirement}`;
+      const finalInputs = `${logoRules}. SCENE: ${activePrompt}. ${textRequirement}`;
 
-      // A 'as any' azért kell, mert a provider mező nem része a gyári TS definíciónak,
-      // de az API elfogadja.
+      // Using the exact user-provided setup with 'as any' for TS compatibility
       const imageBlob = await client.textToImage({
         provider: "fal-ai",
         model: HF_MODEL,
@@ -309,12 +311,21 @@ const MemeGenerator: React.FC = () => {
         }
       } as any);
 
+      if (!(imageBlob instanceof Blob)) {
+        throw new Error("Invalid response from Hugging Face. Expected an image blob.");
+      }
+
       const imageUrl = URL.createObjectURL(imageBlob);
       setResultImage(imageUrl);
 
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Engine error. Please ensure HF API token is valid.");
+      console.error("HF Error:", err);
+      // More descriptive error messages
+      if (err.message?.includes("fetch")) {
+        setError("Network Error: Could not reach Hugging Face. Check your token or API limits.");
+      } else {
+        setError(err.message || "An unexpected error occurred during generation.");
+      }
     } finally {
       setGenerating(false);
     }
@@ -338,7 +349,7 @@ const MemeGenerator: React.FC = () => {
             <Rocket size={40} fill="currentColor" />
           </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Hugging Face Inference Engine</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">AI Generator powered by Fal.ai</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
@@ -353,20 +364,20 @@ const MemeGenerator: React.FC = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="e.g. Testicle character in a yellow space suit on the moon..."
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
-                    <Type size={16} /> Text on Image
+                    <Type size={16} /> Text Overlay
                   </label>
                   <input
                     type="text"
                     value={memeText}
                     onChange={(e) => setMemeText(e.target.value)}
                     placeholder="e.g. TO THE MOON"
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all"
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -395,8 +406,12 @@ const MemeGenerator: React.FC = () => {
               </div>
               
               {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm text-center font-bold uppercase">
-                  {error}
+                <div className="p-5 bg-red-950/40 border-2 border-red-500 rounded-2xl text-red-400 text-sm flex gap-3 items-start shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                  <AlertCircle className="shrink-0" size={20} />
+                  <div className="flex flex-col">
+                    <span className="font-black uppercase tracking-widest mb-1 text-red-500">Error Encountered</span>
+                    <span className="font-bold">{error}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -417,8 +432,8 @@ const MemeGenerator: React.FC = () => {
                         <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-200 animate-pulse" size={40} />
                       </div>
                       <div>
-                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">HF Client Syncing...</h4>
-                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">Z-IMAGE-TURBO MODEL</p>
+                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Fal.ai...</h4>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">Z-IMAGE-TURBO ACTIVE</p>
                       </div>
                     </motion.div>
                   ) : resultImage ? (
