@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle, Dice6 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { GoogleGenAI } from "@google/genai";
 
@@ -42,7 +42,7 @@ const BackgroundDrifters: React.FC = () => {
         <motion.img
           key={i}
           src={LOGO_URL}
-          className="absolute w-32 h-32 md:w-64 md:h-64"
+          className="absolute w-32 h-32 md:w-64 md:h-64 rounded-full"
           initial={{ 
             x: Math.random() * 100 + "%", 
             y: Math.random() * 100 + "%",
@@ -221,6 +221,38 @@ const MemeGenerator: React.FC = () => {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const randomScenarios = [
+    "Testicle character chillin on a pile of gold coins",
+    "Testicle character flying a yellow rocket to Mars",
+    "Testicle character fighting a giant snowball",
+    "Testicle character wearing a crown in a dark palace",
+    "Testicle character surfing on a tidal wave of SOL",
+    "Testicle character at the gym lifting 1000kg",
+    "Testicle character as a yellow DJ in a club",
+    "Testicle character meditating on top of a mountain"
+  ];
+
+  const handleRandom = () => {
+    const scenario = randomScenarios[Math.floor(Math.random() * randomScenarios.length)];
+    setPrompt(scenario);
+    generateMeme(scenario);
+  };
+
+  // Helper to fetch logo and convert to base64 for referencing
+  const getLogoBase64 = async () => {
+    try {
+      const response = await fetch(LOGO_URL);
+      const blob = await response.blob();
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return null;
+    }
+  };
+
   const generateMeme = async (overridePrompt?: string) => {
     const activePrompt = (overridePrompt || prompt).trim();
     if (!activePrompt || generating) return;
@@ -230,19 +262,36 @@ const MemeGenerator: React.FC = () => {
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const logoData = await getLogoBase64();
       
-      const fullPrompt = `
+      const contents: any[] = [];
+      
+      // If we could fetch the logo, send it as a reference
+      if (logoData) {
+        contents.push({
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: logoData
+          }
+        });
+      }
+
+      const instruction = `
         STYLE: Crude primitive marker doodle, simple 2D sketch.
         COLORS: Strictly Pure Black and Golden Yellow (#fbbf24) ONLY.
-        CHARACTER: A wobbly potato head with tiny dot eyes and stick body.
-        BACKGROUND: Pure solid black.
+        MANDATORY CHARACTER DESIGN: The character MUST have the EXACT SAME HEAD as shown in the provided logo image (the wobbly, slightly asymmetric testicle head with those specific eyes).
+        BODY: Simple yellow stick figure body attached to that head.
+        BACKGROUND: Absolute solid black.
         SCENE: ${activePrompt}.
-        ${memeText ? `Include text "${memeText.toUpperCase()}" in hand-drawn yellow letters.` : ""}
+        ${memeText ? `Include text "${memeText.toUpperCase()}" in hand-drawn messy yellow marker letters.` : ""}
+        NO GRADIENTS. NO SHADING. ONLY FLAT YELLOW AND BLACK.
       `;
+
+      contents.push({ text: instruction });
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: fullPrompt }] },
+        contents: { parts: contents },
         config: { imageConfig: { aspectRatio: "1:1" } },
       });
 
@@ -250,10 +299,11 @@ const MemeGenerator: React.FC = () => {
       if (part?.inlineData) {
         setResultImage(`data:image/png;base64,${part.inlineData.data}`);
       } else {
-        throw new Error("No image generated. Check your API key.");
+        throw new Error("No image generated. Please check your API key and connection.");
       }
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      console.error(err);
+      setError(err.message || "Something went wrong. The API key might be invalid or reaching limits.");
     } finally {
       setGenerating(false);
     }
@@ -265,7 +315,7 @@ const MemeGenerator: React.FC = () => {
         <div className="text-center mb-16">
           <Rocket size={48} className="mx-auto mb-6 text-yellow-400 animate-bounce" />
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">Meme-Lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-widest italic">Powered by Gemini 2.5 Flash</p>
+          <p className="text-xl opacity-60 uppercase tracking-widest italic">Character head locked to logo design</p>
         </div>
 
         <div className="bg-black border-4 border-yellow-400 rounded-[2.5rem] p-8 md:p-12 shadow-[20px_20px_0px_rgba(251,191,36,0.1)]">
@@ -290,14 +340,26 @@ const MemeGenerator: React.FC = () => {
                   className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
                 />
               </div>
-              <button
-                onClick={() => generateMeme()}
-                disabled={generating || !prompt.trim()}
-                className="w-full bg-yellow-400 text-black font-black text-3xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_8px_0_#78350f]"
-              >
-                {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
-                GENERATE
-              </button>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => generateMeme()}
+                  disabled={generating || !prompt.trim()}
+                  className="flex-1 bg-yellow-400 text-black font-black text-2xl py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_8px_0_#78350f]"
+                >
+                  {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
+                  GENERATE
+                </button>
+                <button
+                  onClick={handleRandom}
+                  disabled={generating}
+                  className="bg-black text-yellow-400 border-4 border-yellow-400 px-6 py-5 rounded-2xl flex items-center justify-center gap-2 hover:bg-yellow-400/10 transition-all shadow-[0_8px_0_rgba(251,191,36,0.2)]"
+                >
+                  <Dice6 size={32} />
+                  <span className="hidden sm:inline">RANDOM</span>
+                </button>
+              </div>
+
               {error && (
                 <div className="p-4 bg-red-900/20 border-2 border-red-500 rounded-xl text-red-400 text-sm flex gap-3 italic">
                   <AlertCircle size={20} /> {error}
@@ -310,7 +372,7 @@ const MemeGenerator: React.FC = () => {
                 {generating ? (
                   <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-6">
                     <Loader2 size={80} className="text-yellow-400 animate-spin" />
-                    <p className="text-yellow-400 font-black uppercase tracking-[0.2em] animate-pulse">Engines Warming Up...</p>
+                    <p className="text-yellow-400 font-black uppercase tracking-[0.2em] animate-pulse">Syncing with Logo Core...</p>
                   </motion.div>
                 ) : resultImage ? (
                   <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full p-4 group">
@@ -318,7 +380,10 @@ const MemeGenerator: React.FC = () => {
                     <a href={resultImage} download="meme.png" className="absolute top-8 right-8 bg-yellow-400 text-black p-4 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity"><Download size={24} /></a>
                   </motion.div>
                 ) : (
-                  <div className="text-center opacity-10"><Sparkles size={120} /></div>
+                  <div className="text-center opacity-10 flex flex-col items-center">
+                    <Sparkles size={120} />
+                    <p className="mt-4 font-black uppercase">Referencing logo...</p>
+                  </div>
                 )}
               </AnimatePresence>
             </div>
@@ -338,7 +403,7 @@ const Navbar: React.FC = () => {
       <motion.div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-yellow-400 origin-left" style={{ scaleX }} />
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-          <img src={LOGO_URL} alt="logo" className="w-12 h-12 object-contain" />
+          <img src={LOGO_URL} alt="logo" className="w-12 h-12 object-contain rounded-full" />
           <span className="text-2xl text-yellow-400 yellow-glow uppercase">testicle</span>
         </div>
         <div className="hidden md:flex items-center gap-10 font-black uppercase text-sm tracking-widest">
@@ -382,7 +447,7 @@ const App: React.FC = () => (
     </div>
 
     <footer className="py-20 bg-black text-center border-t-4 border-yellow-400/10">
-      <img src={LOGO_URL} alt="logo" className="w-16 h-16 mx-auto mb-8 grayscale hover:grayscale-0 transition-all" />
+      <img src={LOGO_URL} alt="logo" className="w-16 h-16 mx-auto mb-8 grayscale hover:grayscale-0 transition-all rounded-full" />
       <div className="flex justify-center gap-12 mb-12">
         <a href={X_COMMUNITY_URL} target="_blank"><XLogo size={40} /></a>
         <a href={PUMP_FUN_URL} target="_blank"><ShoppingCart size={40} /></a>
