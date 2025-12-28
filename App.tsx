@@ -2,8 +2,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-// Use HfInference as it is the correct export name from the library, aliased to InferenceClient as requested
-import { HfInference as InferenceClient } from "@huggingface/inference";
+// A helyes export név HfInference
+import { HfInference } from "@huggingface/inference";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
@@ -11,7 +11,7 @@ const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=24
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
 
-// HF CONFIG - Using process.env.API_KEY as the token per system requirements
+// Az API kulcsot a rendszer a process.env.API_KEY-ben biztosítja
 const HF_TOKEN = process.env.API_KEY; 
 const HF_MODEL = "Tongyi-MAI/Z-Image-Turbo"; 
 
@@ -277,8 +277,8 @@ const MemeGenerator: React.FC = () => {
     setError(null);
     
     try {
-      // Using InferenceClient (HfInference alias) with the token
-      const client = new InferenceClient(HF_TOKEN);
+      // Használjuk a HfInference osztályt
+      const client = new HfInference(HF_TOKEN);
       
       const logoRules = `
         ABSOLUTE CHARACTER FIDELITY RULES:
@@ -298,7 +298,8 @@ const MemeGenerator: React.FC = () => {
 
       const finalInputs = `A crude 2D doodle. ${logoRules}. SCENE: ${activePrompt}. ${textRequirement}`;
 
-      // Updated as requested: provider fal-ai, model Tongyi-MAI/Z-Image-Turbo, 5 steps
+      // A 'as any' azért kell, mert a provider mező nem része a gyári TS definíciónak,
+      // de az API elfogadja.
       const imageBlob = await client.textToImage({
         provider: "fal-ai",
         model: HF_MODEL,
@@ -306,7 +307,7 @@ const MemeGenerator: React.FC = () => {
         parameters: { 
           num_inference_steps: 5, 
         }
-      });
+      } as any);
 
       const imageUrl = URL.createObjectURL(imageBlob);
       setResultImage(imageUrl);
@@ -417,7 +418,7 @@ const MemeGenerator: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">HF Client Syncing...</h4>
-                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">FLUX.1 DEV MODEL</p>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">Z-IMAGE-TURBO MODEL</p>
                       </div>
                     </motion.div>
                   ) : resultImage ? (
