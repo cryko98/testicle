@@ -1,15 +1,14 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
+import { GoogleGenAI } from "@google/genai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
-
-const TOGETHER_API_KEY = (import.meta as any).env?.VITE_TOGETHER_API_KEY || ""; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -134,8 +133,8 @@ const DrawingBoard: React.FC = () => {
       offsetX = e.touches[0].clientX - rect.left;
       offsetY = e.touches[0].clientY - rect.top;
     } else {
-      offsetX = e.nativeEvent.offsetX;
-      offsetY = e.nativeEvent.offsetY;
+      offsetX = (e as React.MouseEvent).nativeEvent.offsetX;
+      offsetY = (e as React.MouseEvent).nativeEvent.offsetY;
     }
     contextRef.current.beginPath();
     contextRef.current.moveTo(offsetX, offsetY);
@@ -151,8 +150,8 @@ const DrawingBoard: React.FC = () => {
       offsetY = e.touches[0].clientY - rect.top;
       if (e.cancelable) e.preventDefault();
     } else {
-      offsetX = e.nativeEvent.offsetX;
-      offsetY = e.nativeEvent.offsetY;
+      offsetX = (e as React.MouseEvent).nativeEvent.offsetX;
+      offsetY = (e as React.MouseEvent).nativeEvent.offsetY;
     }
     contextRef.current.strokeStyle = mode === 'pen' ? THEME_YELLOW : 'black';
     contextRef.current.lineWidth = mode === 'pen' ? 5 : 20;
@@ -266,75 +265,65 @@ const MemeGenerator: React.FC = () => {
   ];
 
   const generateMeme = async (overridePrompt?: string) => {
-    const activePrompt = overridePrompt || prompt;
-    if (!activePrompt.trim() || generating) return;
+    const activePrompt = (overridePrompt || prompt).trim();
+    if (!activePrompt || generating) return;
     
     setGenerating(true);
     setError(null);
     
     try {
-      /**
-       * ULTRA-HIGH FIDELITY PROMPT ENGINEERING:
-       * Defines the character with surgical precision to avoid "AI genericism".
-       */
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+      
       const logoTechnicalDefinition = `
-        CORE CHARACTER DESIGN: 
+        CORE CHARACTER DESIGN RULES: 
         1. THE HEAD: A primitive, non-symmetrical, wobbly, potato-shaped ring. 
-        2. OUTLINE: A thick, uneven golden-yellow (#fbbf24) line that looks like it was drawn with a felt-tip pen. 
-        3. FACE: The interior of the head is a solid, featureless, pure pitch-black (#000000) void. 
-        4. EYES: Exactly two tiny, solid yellow (#fbbf24) blobs for eyes. 
-        5. ASYMMETRY: The eyes are placed unevenly and misaligned within the black area for a quirky, crude MS Paint look.
-        6. NO SHADING: Entirely 2D, no gradients, no 3D effects.
-        7. BODY: Thin, primitive yellow stick-figure body.
+        2. OUTLINE: A thick, uneven golden-yellow (#fbbf24) line.
+        3. FACE: Solid pure pitch-black (#000000). 
+        4. EYES: Exactly two tiny, solid yellow (#fbbf24) dots, misaligned.
+        5. STYLE: 2D crude doodle, no shading, no 3D effects.
+        6. BACKGROUND: Absolute solid black.
       `;
 
       const textRequirement = memeText.trim() 
-        ? `The text "${memeText.toUpperCase()}" must be clearly visible, written in a bold, crude, hand-drawn yellow marker font across the top or bottom of the image.` 
+        ? `Write the text "${memeText.toUpperCase()}" in crude, hand-drawn yellow letters.` 
         : "";
 
       const finalPromptText = `
-        SCENE: ${activePrompt}. 
         ${logoTechnicalDefinition}
+        SCENE: ${activePrompt}. 
         ${textRequirement}
-        AESTHETIC: High-contrast 2-color art. Background is PURE SOLID BLACK. Every line is Golden-Yellow (#fbbf24). Masterpiece primitive doodle style. Technical: FLUX text rendering enabled.
+        AESTHETIC: High-contrast 2-color art. Background: SOLID BLACK. Lines: Golden-Yellow (#fbbf24). Masterpiece primitive marker doodle.
       `;
 
-      if (TOGETHER_API_KEY) {
-        const response = await fetch("https://api.together.xyz/v1/images/generations", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${TOGETHER_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            model: "black-forest-labs/FLUX.1-schnell-Free",
-            prompt: finalPromptText,
-            width: 1024,
-            height: 1024,
-            steps: 4,
-            n: 1,
-            response_format: "b64_json"
-          })
-        });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [{ text: finalPromptText }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "1:1"
+          }
+        },
+      });
 
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        
-        const base64Data = data.data[0].b64_json;
-        setResultImage(`data:image/png;base64,${base64Data}`);
-      } else {
-        // Fallback for demo purposes
-        const seed = Math.floor(Math.random() * 1000000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
-        
-        const img = new Image();
-        img.onload = () => setResultImage(imageUrl);
-        img.onerror = () => setError("Engine failed. Check API configuration.");
-        img.src = imageUrl;
+      let foundImage = false;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const base64Data = part.inlineData.data;
+          setResultImage(`data:image/png;base64,${base64Data}`);
+          foundImage = true;
+          break;
+        }
       }
+
+      if (!foundImage) {
+        throw new Error("No image data received from Gemini Engine.");
+      }
+
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Something went wrong in the lab.");
+      console.error("Gemini Image Error:", err);
+      setError(err.message || "Engine failure. Check API configuration or prompt.");
     } finally {
       setGenerating(false);
     }
@@ -358,12 +347,11 @@ const MemeGenerator: React.FC = () => {
             <Rocket size={40} fill="currentColor" />
           </motion.div>
           <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">meme-lab</h2>
-          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Perfect Character Fidelity Engine</p>
+          <p className="text-xl opacity-60 uppercase tracking-[0.3em]">Gemini AI Image Engine</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-900/20 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[30px_30px_0px_rgba(251,191,36,0.05)]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
-            {/* Control Panel */}
             <div className="lg:col-span-5 flex flex-col gap-8">
               <div className="space-y-6">
                 <div className="space-y-2">
@@ -374,20 +362,20 @@ const MemeGenerator: React.FC = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="e.g. Testicle character in a yellow space suit on the moon..."
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-5 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all resize-none h-32 shadow-inner"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-yellow-400 text-sm font-black uppercase tracking-widest">
-                    <Type size={16} /> Text on Image
+                    <Type size={16} /> Text Overlay
                   </label>
                   <input
                     type="text"
                     value={memeText}
                     onChange={(e) => setMemeText(e.target.value)}
                     placeholder="e.g. TO THE MOON"
-                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all"
+                    className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -401,7 +389,7 @@ const MemeGenerator: React.FC = () => {
                   className="bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_10px_0_#78350f]"
                 >
                   {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
-                  GENERATE ASSET
+                  INITIATE ENGINE
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -411,18 +399,21 @@ const MemeGenerator: React.FC = () => {
                   className="bg-black text-yellow-400 border-2 border-yellow-400 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
                 >
                   <Sparkles size={20} />
-                  SURPRISE ME
+                  RANDOM IDEA
                 </motion.button>
               </div>
               
               {error && (
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm text-center font-bold uppercase">
-                  {error}
+                <div className="p-5 bg-red-950/40 border-2 border-red-500 rounded-2xl text-red-400 text-sm flex gap-3 items-start shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                  <AlertCircle className="shrink-0 text-red-500" size={24} />
+                  <div className="flex flex-col">
+                    <span className="font-black uppercase tracking-widest mb-1 text-red-500">Error Report</span>
+                    <span className="font-bold leading-tight">{error}</span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Preview Panel */}
             <div className="lg:col-span-7 h-full min-h-[500px]">
               <div className="relative h-full w-full bg-black rounded-[2rem] border-2 border-dashed border-yellow-400/10 flex items-center justify-center overflow-hidden shadow-2xl">
                 <AnimatePresence mode="wait">
@@ -439,15 +430,15 @@ const MemeGenerator: React.FC = () => {
                         <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-200 animate-pulse" size={40} />
                       </div>
                       <div>
-                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Logo Specs...</h4>
-                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">Enforcing Potato Geometry</p>
+                        <h4 className="text-3xl font-black text-yellow-400 uppercase mb-3">Syncing Engine...</h4>
+                        <p className="text-yellow-400/50 text-sm uppercase tracking-[0.3em] animate-pulse font-bold">GEMINI 2.5 FLASH ACTIVE</p>
                       </div>
                     </motion.div>
                   ) : resultImage ? (
                     <motion.div 
                       key="result"
-                      initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       className="relative w-full h-full p-4 group"
                     >
                       <img 
@@ -470,7 +461,7 @@ const MemeGenerator: React.FC = () => {
                   ) : (
                     <div className="text-center opacity-10 p-12 select-none pointer-events-none">
                       <Sparkles size={160} className="mx-auto mb-8" />
-                      <p className="text-3xl font-black uppercase tracking-widest italic">Waiting for Input</p>
+                      <p className="text-3xl font-black uppercase tracking-widest italic">Engine Standby</p>
                     </div>
                   )}
                 </AnimatePresence>
