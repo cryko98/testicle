@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2 } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, RefreshCw, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
@@ -8,6 +8,9 @@ const X_COMMUNITY_URL = "https://x.com/i/communities/2002717537985773778";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
 const THEME_YELLOW = "#fbbf24";
+
+// Accessing the API key from environment variables (Vercel)
+const TOGETHER_API_KEY = (import.meta as any).env?.VITE_TOGETHER_API_KEY || ""; 
 
 const XLogo = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -253,16 +256,16 @@ const MemeGenerator: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const randomPrompts = [
-    "Testicle character skiing down a mountain of yellow snow",
-    "Testicle character stuck inside a giant yellow snowball",
-    "Testicle character ice fishing and catching a golden coin",
-    "Testicle character building a snowman that looks exactly like him",
-    "Testicle character sledding on a golden coin through a blizzard",
-    "Testicle character wearing a tiny yellow winter hat and scarf",
-    "Testicle character eating a yellow popsicle in a snowstorm",
-    "Testicle character ice skating on a vertical trading chart",
-    "Testicle character fighting a blizzard with a tiny yellow stick",
-    "Testicle character waiting for the bus in a heavy yellow snowfall"
+    "Testicle character chillin' in a yellow hot tub in a black void",
+    "Testicle character holding a 'BUY' sign during a storm of yellow coins",
+    "Testicle character driving a fast yellow sports car on a black road",
+    "Testicle character as a giant yellow shadow over a futuristic black city",
+    "Testicle character meditation under a yellow neon moon",
+    "Testicle character holding a yellow lightsaber in a black forest",
+    "Testicle character riding a yellow comet through deep black space",
+    "Testicle character sitting at a black desk with a yellow holographic computer",
+    "Testicle character playing yellow electric guitar in a dark club",
+    "Testicle character as a yellow superhero flying through black clouds"
   ];
 
   const generateMeme = async (overridePrompt?: string) => {
@@ -274,41 +277,65 @@ const MemeGenerator: React.FC = () => {
     
     try {
       /**
-       * ULTIMATE CHARACTER CONSISTENCY PROMPT:
-       * We define the character using the exact geometry of the logo.
+       * STRICT LOGO FIDELITY PROMPT:
+       * Technical specs to match the provided potato-head image.
        */
-      const characterVisualIdentity = `
-        STRICT CHARACTER RULES:
-        1. HEAD: A rough, wobbling, uneven, hand-drawn thick yellow circular outline. 
-        2. FACE INTERIOR: The space inside the yellow outline MUST be PURE FLAT SOLID BLACK.
-        3. EYES: Exactly two solid yellow small dots for eyes. 
-        4. EYE POSITION: The eyes MUST be placed asymmetrically, quirky, unevenly, and slightly off-center inside the black face.
-        5. BODY: Simple, primitive thin yellow stick-figure body.
-        6. NO GRADIENTS: Use only flat hex color #fbbf24 (yellow) and #000000 (black).
+      const characterMasterPrompt = `
+        MANDATORY VISUAL RULES (REPLICATE ORIGINAL LOGO):
+        1. THE HEAD: Not a circle. Must be an irregular, bumpy, potato-shaped ring drawn with a thick, uneven golden-yellow (#fbbf24) hand-drawn line.
+        2. THE FACE: The interior of the yellow ring is a flat, featureless, pure PITCH BLACK (#000000) void.
+        3. THE EYES: Exactly two small, solid yellow (#fbbf24) blobs for eyes.
+        4. EYE POSITION: Place the eyes UNEVENLY and ASYMMETRICALLY inside the black face. One eye higher or further to the side than the other for a quirky, crude, MS Paint aesthetic.
+        5. STYLE: Crude 2D doodle. Solid black background. No 3D, no shading, no gradients.
+        6. COLORS: Only Golden-Yellow (#fbbf24) and Pitch-Black (#000000).
       `;
 
-      const scene = activePrompt;
-      const aesthetic = "2D minimalist scribble meme style, digital ink sketch, rough hand-drawn feel, high-contrast, black and yellow only, simple doodle, trending Solana meme aesthetic.";
-      
-      const finalPromptText = `Scene: ${scene}. Main character: ${characterVisualIdentity}. Overall Style: ${aesthetic}. Background: Pure solid black.`;
-      const seed = Math.floor(Math.random() * 1000000);
-      
-      // Flux via Pollinations for high fidelity following instructions
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+      const finalPromptText = `Masterpiece primitive 2D doodle. SCENE: ${activePrompt}. CHARACTER: ${characterMasterPrompt}. AESTHETIC: High contrast, minimalist black and yellow, solid black background, felt-tip marker texture.`;
 
-      const img = new Image();
-      img.onload = () => {
-        setResultImage(imageUrl);
+      if (TOGETHER_API_KEY) {
+        // TOGETHER.AI API CALL
+        const response = await fetch("https://api.together.xyz/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "black-forest-labs/FLUX.1-schnell-Free",
+            prompt: finalPromptText,
+            width: 1024,
+            height: 1024,
+            steps: 4,
+            n: 1,
+            response_format: "b64_json"
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        const base64Data = data.data[0].b64_json;
+        setResultImage(`data:image/png;base64,${base64Data}`);
         setGenerating(false);
-      };
-      img.onerror = () => {
-        setError("The Lab's power is flickering. Try again!");
-        setGenerating(false);
-      };
-      img.src = imageUrl;
-    } catch (err) {
+      } else {
+        // FALLBACK TO POLLINATIONS (IF NO KEY)
+        const seed = Math.floor(Math.random() * 1000000);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPromptText)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+        
+        const img = new Image();
+        img.onload = () => {
+          setResultImage(imageUrl);
+          setGenerating(false);
+        };
+        img.onerror = () => {
+          setError("Lab connection failed. Check your API settings.");
+          setGenerating(false);
+        };
+        img.src = imageUrl;
+      }
+    } catch (err: any) {
       console.error(err);
-      setError("Failed to cook the meme. Try again!");
+      setError(err.message || "Failed to cook. Ensure TOGETHER_API_KEY is correct.");
       setGenerating(false);
     }
   };
@@ -321,74 +348,116 @@ const MemeGenerator: React.FC = () => {
 
   return (
     <SectionReveal id="meme-lab" className="py-24 px-6 bg-black relative">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-5xl md:text-6xl text-yellow-400 mb-4 text-center yellow-glow uppercase">Meme Lab</h2>
-        <p className="text-center text-xl mb-12 opacity-80 uppercase tracking-widest">Black Face • Yellow Outline • Yellow Body</p>
-        <div className="bg-yellow-900/10 border-4 border-yellow-400 rounded-3xl p-6 md:p-10 shadow-[10px_10px_0px_rgba(251,191,36,0.2)]">
-          <div className="flex flex-col gap-6">
-            <div className="relative">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe your meme idea (e.g. Testicle character in a space suit...)"
-                className="w-full bg-black border-2 border-yellow-400/50 rounded-xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/30 focus:border-yellow-400 outline-none transition-all resize-none h-32"
-              />
-              <motion.button 
-                whileHover={{ scale: 1.1, rotate: 180 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setPrompt(randomPrompts[Math.floor(Math.random() * randomPrompts.length)])}
-                className="absolute right-4 bottom-4 text-yellow-400 hover:text-white transition-colors p-2"
-              >
-                <RefreshCw size={24} />
-              </motion.button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <motion.button
-                whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => generateMeme()}
-                disabled={generating || !prompt.trim()}
-                className="bg-yellow-400 text-black font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[6px_6px_0px_#78350f]"
-              >
-                {generating ? <Loader2 className="animate-spin" size={28} /> : <Wand2 size={28} />}
-                COOK THE MEME
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleRandomMeme}
-                disabled={generating}
-                className="bg-black text-yellow-400 border-4 border-yellow-400 font-black text-2xl py-5 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
-              >
-                <Sparkles size={28} />
-                RANDOM MEME
-              </motion.button>
-            </div>
-            {error && <p className="text-red-500 text-center font-bold text-lg uppercase">{error}</p>}
-            <AnimatePresence>
-              {resultImage && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="mt-8"
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-16">
+          <motion.div 
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            className="inline-block bg-yellow-400 text-black p-4 rounded-2xl mb-6 shadow-[0_0_40px_rgba(251,191,36,0.3)]"
+          >
+            <Rocket size={40} fill="currentColor" />
+          </motion.div>
+          <h2 className="text-6xl md:text-7xl text-yellow-400 mb-4 yellow-glow uppercase">Together Meme Engine</h2>
+          <p className="text-xl opacity-60 uppercase tracking-[0.25em]">High-Speed Asset Generation</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-900/10 to-black border-4 border-yellow-400 rounded-[3rem] p-8 md:p-12 shadow-[20px_20px_0px_rgba(251,191,36,0.05)]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            {/* Control Panel */}
+            <div className="lg:col-span-5 flex flex-col gap-8">
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-yellow-400 text-sm font-bold uppercase tracking-widest">
+                  <Wand2 size={16} /> Asset Scenario
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Where should $testicle appear? (e.g. driving a yellow lambo...)"
+                  className="w-full bg-black border-2 border-yellow-400/30 rounded-2xl p-6 text-xl text-yellow-100 placeholder:text-yellow-400/10 focus:border-yellow-400 outline-none transition-all resize-none h-40 shadow-inner"
+                />
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.02, backgroundColor: "#fef08a" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => generateMeme()}
+                  disabled={generating || !prompt.trim()}
+                  className="bg-yellow-400 text-black font-black text-2xl py-6 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-300 transition-all disabled:opacity-50 shadow-[0_8px_0_#78350f]"
                 >
-                  <div className="relative group rounded-2xl overflow-hidden border-4 border-yellow-400 bg-black aspect-square max-w-md mx-auto shadow-[15px_15px_0px_rgba(251,191,36,0.1)]">
-                    <img src={resultImage} alt="Generated Meme" className="w-full h-full object-cover" />
-                    <motion.a 
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      href={resultImage} 
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute top-4 right-4 bg-yellow-400 text-black p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                    >
-                      <Download size={24} />
-                    </motion.a>
-                  </div>
-                </motion.div>
+                  {generating ? <Loader2 className="animate-spin" size={32} /> : <Zap size={32} />}
+                  INITIATE ENGINE
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRandomMeme}
+                  disabled={generating}
+                  className="bg-black text-yellow-400 border-2 border-yellow-400 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-yellow-400 hover:text-black transition-all disabled:opacity-50"
+                >
+                  <Sparkles size={20} />
+                  RANDOM IDEA
+                </motion.button>
+              </div>
+              {error && <p className="text-red-500 text-center font-bold text-sm uppercase bg-red-500/10 p-4 rounded-lg border border-red-500/30">{error}</p>}
+              {!TOGETHER_API_KEY && !generating && (
+                <div className="p-4 bg-yellow-400/10 border border-yellow-400/30 rounded-xl text-yellow-400/60 text-xs text-center uppercase tracking-tighter">
+                  VITE_TOGETHER_API_KEY not detected. Using Free Global Fallback.
+                </div>
               )}
-            </AnimatePresence>
+            </div>
+
+            {/* Preview Panel */}
+            <div className="lg:col-span-7 h-full min-h-[500px]">
+              <div className="relative h-full w-full bg-black rounded-[2rem] border-2 border-dashed border-yellow-400/10 flex items-center justify-center overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {generating ? (
+                    <motion.div 
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center gap-6 text-center p-8"
+                    >
+                      <Loader2 size={80} className="text-yellow-400 animate-spin" />
+                      <div>
+                        <h4 className="text-2xl font-black text-yellow-400 uppercase mb-2">Syncing Flux Engine...</h4>
+                        <p className="text-yellow-400/40 text-sm uppercase tracking-widest">Enforcing Logo Specs</p>
+                      </div>
+                    </motion.div>
+                  ) : resultImage ? (
+                    <motion.div 
+                      key="result"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="relative w-full h-full p-4"
+                    >
+                      <img 
+                        src={resultImage} 
+                        alt="Generated Meme" 
+                        className="w-full h-full object-contain rounded-xl shadow-[0_0_60px_rgba(0,0,0,0.8)]"
+                      />
+                      <div className="absolute bottom-8 right-8">
+                        <motion.a 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          href={resultImage} 
+                          download="testicle-meme.png"
+                          className="bg-yellow-400 text-black p-4 rounded-2xl shadow-2xl hover:bg-white transition-all block"
+                        >
+                          <Download size={24} />
+                        </motion.a>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className="text-center opacity-10 p-12">
+                      <Sparkles size={120} className="mx-auto mb-6" />
+                      <p className="text-2xl font-black uppercase">Asset Ready for Cooking</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
         </div>
       </div>
