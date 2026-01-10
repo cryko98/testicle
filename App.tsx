@@ -530,7 +530,7 @@ const About: React.FC = () => (
            EVERY SINGLE ONE OF YOU CAME FROM A $TESTICLE.
         </p>
         <div className="w-full h-1 bg-yellow-400/20 my-6 md:my-8"></div>
-        <p className="text-center text-xl md:text-3xl font-black italic uppercase">SACK UP.</p>
+        <p className="text-center text-3xl md:text-5xl font-black italic uppercase text-yellow-400">SACK UP.</p>
       </div>
     </div>
   </SectionReveal>
