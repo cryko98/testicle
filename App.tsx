@@ -332,11 +332,11 @@ const MemeGenerator: React.FC = () => {
   };
 
   return (
-    <SectionReveal id="meme-lab" className="py-16 md:py-24 px-4 md:px-6 bg-black relative">
+    <SectionReveal id="sack-lab" className="py-16 md:py-24 px-4 md:px-6 bg-black relative">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10 md:mb-16">
           <Rocket size={40} className="mx-auto mb-4 md:mb-6 text-yellow-400 animate-bounce md:w-12 md:h-12" />
-          <h2 className="text-5xl md:text-7xl text-yellow-400 mb-2 md:mb-4 yellow-glow uppercase">Meme-Lab</h2>
+          <h2 className="text-5xl md:text-7xl text-yellow-400 mb-2 md:mb-4 yellow-glow uppercase">Sack-Lab</h2>
           <p className="text-lg md:text-xl opacity-60 uppercase tracking-widest italic">Character head locked to logo design</p>
         </div>
 
@@ -358,7 +358,7 @@ const MemeGenerator: React.FC = () => {
                   type="text"
                   value={memeText}
                   onChange={(e) => setMemeText(e.target.value)}
-                  placeholder="TO THE MOON"
+                  placeholder="TO BALLHALLA"
                   className="w-full bg-black border-2 border-yellow-400/30 rounded-lg md:rounded-xl p-3 md:p-4 text-base md:text-lg text-yellow-100 placeholder:text-yellow-400/20 focus:border-yellow-400 outline-none transition-all"
                 />
               </div>
@@ -431,7 +431,7 @@ const Navbar: React.FC = () => {
         
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-10 font-black uppercase text-sm tracking-widest">
-          {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
+          {["About", "Sack-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
             <a key={item} href={`#${item.toLowerCase().replace(/ /g, "-")}`} className="hover:text-white transition-colors">{item}</a>
           ))}
           <a href={PUMP_FUN_URL} target="_blank" rel="noopener noreferrer" className="bg-yellow-400 text-black px-6 py-2 rounded-lg shadow-[4px_4px_0px_#78350f] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#78350f] transition-all">BUY</a>
@@ -451,7 +451,7 @@ const Navbar: React.FC = () => {
             className="md:hidden overflow-hidden bg-black border-t border-yellow-400/20"
           >
             <div className="flex flex-col p-6 gap-6 font-black uppercase tracking-widest text-center">
-              {["About", "Meme-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
+              {["About", "Sack-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
                 <a key={item} href={`#${item.toLowerCase().replace(/ /g, "-")}`} onClick={() => setIsOpen(false)} className="text-xl text-yellow-400 hover:text-white">{item}</a>
               ))}
               <a href={PUMP_FUN_URL} target="_blank" className="bg-yellow-400 text-black py-4 rounded-xl shadow-[4px_4px_0px_#78350f]">BUY $TESTICLE</a>
@@ -529,11 +529,8 @@ const About: React.FC = () => (
         <p className="text-3xl md:text-5xl font-black text-center text-yellow-400 leading-tight mb-8 md:mb-12 uppercase">
            EVERY SINGLE ONE OF YOU CAME FROM A $TESTICLE.
         </p>
-        <p className="text-lg md:text-2xl opacity-80 leading-relaxed mb-6 md:mb-8 text-center">
-          Dev used this to battle-test the tech. It became the ultimate stress-test for the ecosystem. The community took over, and now we bounce.
-        </p>
         <div className="w-full h-1 bg-yellow-400/20 my-6 md:my-8"></div>
-        <p className="text-center text-xl md:text-3xl font-black italic uppercase">"It's just a testicle. But it's our testicle."</p>
+        <p className="text-center text-xl md:text-3xl font-black italic uppercase">SACK UP.</p>
       </div>
     </div>
   </SectionReveal>
@@ -545,7 +542,7 @@ const HowToBuy: React.FC = () => (
       <h2 className="text-4xl md:text-6xl text-yellow-400 mb-12 md:mb-20 text-center yellow-glow uppercase">Instructions</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
         {[
-          { t: "WALLET", d: "Get Phantom. It's safe and yellow (mostly).", i: <Wallet size={28} className="md:w-8 md:h-8" /> },
+          { t: "WALLET", d: "Get Phantom.", i: <Wallet size={28} className="md:w-8 md:h-8" /> },
           { t: "SOL", d: "Load up on SOL. Transfers are instant.", i: <Coins size={28} className="md:w-8 md:h-8" /> },
           { t: "PUMP", d: "Paste the CA on Pump.fun search bar.", i: <Search size={28} className="md:w-8 md:h-8" /> },
           { t: "SWAP", d: "Swap SOL for $TESTICLE. Feel the tingle.", i: <ShoppingCart size={28} className="md:w-8 md:h-8" /> }
