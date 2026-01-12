@@ -289,19 +289,23 @@ const Navbar: React.FC = () => {
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 80; // Navbar height offset
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - offset;
+    // 1. Close mobile menu immediately to ensure layout is final
+    setIsOpen(false);
+    
+    // 2. Short timeout to wait for menu closing animation/re-render
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - headerOffset;
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-      // Close mobile menu after triggering scroll
-      setIsOpen(false);
-    }
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
   return (
@@ -322,18 +326,32 @@ const Navbar: React.FC = () => {
       </div>
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden overflow-hidden bg-black border-t border-yellow-400/20">
-            <div className="flex flex-col p-6 gap-6 font-black uppercase tracking-widest text-center">
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: "auto", opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }} 
+            className="md:hidden overflow-hidden bg-black border-t border-yellow-400/20"
+          >
+            <div className="flex flex-col p-6 gap-2 font-black uppercase tracking-widest text-center">
               {["About", "Sack-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
                 <button 
                   key={item} 
+                  type="button"
                   onClick={() => scrollToSection(item.toLowerCase().replace(/ /g, "-"))} 
-                  className="text-xl text-yellow-400 hover:text-white py-2"
+                  className="text-2xl text-yellow-400 hover:text-white py-4 w-full active:bg-yellow-400/10 transition-colors"
                 >
                   {item}
                 </button>
               ))}
-              <a href={PUMP_FUN_URL} target="_blank" className="bg-yellow-400 text-black py-4 rounded-xl font-black">BUY $TESTICLE</a>
+              <div className="pt-4">
+                <a 
+                  href={PUMP_FUN_URL} 
+                  target="_blank" 
+                  className="bg-yellow-400 text-black py-5 rounded-xl font-black block text-xl shadow-[4px_4px_0px_#78350f]"
+                >
+                  BUY $TESTICLE
+                </a>
+              </div>
             </div>
           </motion.div>
         )}
