@@ -289,19 +289,18 @@ const Navbar: React.FC = () => {
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
 
   const scrollToSection = (id: string) => {
-    setIsOpen(false);
     const element = document.getElementById(id);
     if (element) {
       const offset = 80; // Navbar height offset
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
       const offsetPosition = elementPosition - offset;
 
       window.scrollTo({
         top: offsetPosition,
         behavior: 'smooth'
       });
+      // Close mobile menu after triggering scroll
+      setIsOpen(false);
     }
   };
 
@@ -326,9 +325,15 @@ const Navbar: React.FC = () => {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden overflow-hidden bg-black border-t border-yellow-400/20">
             <div className="flex flex-col p-6 gap-6 font-black uppercase tracking-widest text-center">
               {["About", "Sack-Lab", "Draw", "How-to-Buy", "Chart"].map((item) => (
-                <button key={item} onClick={() => scrollToSection(item.toLowerCase().replace(/ /g, "-"))} className="text-xl text-yellow-400 hover:text-white">{item}</button>
+                <button 
+                  key={item} 
+                  onClick={() => scrollToSection(item.toLowerCase().replace(/ /g, "-"))} 
+                  className="text-xl text-yellow-400 hover:text-white py-2"
+                >
+                  {item}
+                </button>
               ))}
-              <a href={PUMP_FUN_URL} target="_blank" className="bg-yellow-400 text-black py-4 rounded-xl">BUY $TESTICLE</a>
+              <a href={PUMP_FUN_URL} target="_blank" className="bg-yellow-400 text-black py-4 rounded-xl font-black">BUY $TESTICLE</a>
             </div>
           </motion.div>
         )}
