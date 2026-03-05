@@ -277,25 +277,26 @@ const MemeGenerator: React.FC = () => {
 
     try {
         // 1. Refined visual description for the character
-        const headDescription = "a simple, rough hand-drawn yellow circle head with two small yellow dots for eyes (exactly like a crude MS Paint drawing)";
-        const bodyDescription = "a simple yellow stick-figure body (thin yellow lines for torso, arms, and legs)";
+        const headDescription = "a simple, wobbly, unevenly hand-drawn yellow circle head (potato-shaped) with two small yellow dots for eyes";
+        const bodyDescription = "a crude yellow stick-figure body made of thin, shaky yellow lines";
         
         const rawPrompt = prompt.trim() ? prompt : "celebrating a victory";
         // Sanitize trigger words
         const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
 
         // 2. Construct a very specific prompt for DALL-E 3
-        const fullPrompt = `A minimalist 2D meme image in a "low-fi" hand-drawn style.
-        STYLE: Bright yellow (#fbbf24) marker lines on a solid, pure pitch-black background. MS Paint aesthetic, rough and crude.
-        CHARACTER: A stick figure. 
+        const fullPrompt = `A minimalist 2D meme image.
+        STYLE: Crude, shaky, hand-drawn digital scribble style. MS Paint aesthetic.
+        COLORS: ONLY use Bright Yellow (#fbbf24) for all lines and Pure Black (#000000) for the background.
+        CHARACTER: A crude stick figure. 
         - HEAD: ${headDescription}.
         - BODY: ${bodyDescription}.
-        SCENE: The stick figure character is ${safePromptText}.
+        SCENE: The character is ${safePromptText}.
         STRICT RULES: 
-        1. ONLY use two colors: Bright Yellow (#fbbf24) for all lines/drawings and Pure Black (#000000) for the background.
-        2. NO other colors, NO gradients, NO shading, NO 3D effects.
+        1. NO other colors besides yellow and black.
+        2. NO gradients, NO shading, NO 3D effects, NO anti-aliasing.
         3. NO text in the image.
-        4. The drawing must look like a fast, rough digital scribble.`;
+        4. The lines must look like they were drawn quickly with a marker or mouse.`;
 
         let imgSource: CanvasImageSource | null = null;
         let isFallback = false;
@@ -354,18 +355,6 @@ const MemeGenerator: React.FC = () => {
              ctx.drawImage(imgSource, x, y, size, size);
         } else {
              ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
-        }
-
-        // Draw branding watermark (only if not fallback)
-        if (logoRef.current && !isFallback) {
-            const logoSize = 120;
-            const padding = 30;
-            ctx.save();
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = "black";
-            ctx.globalAlpha = 0.9;
-            ctx.drawImage(logoRef.current, canvas.width - logoSize - padding, canvas.height - logoSize - padding, logoSize, logoSize);
-            ctx.restore();
         }
 
         // Draw Overlay Text (Optional)
