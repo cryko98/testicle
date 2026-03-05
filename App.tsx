@@ -225,34 +225,158 @@ const DrawingBoard: React.FC = () => {
 
 const MemeGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
-  const [memeText, setMemeText] = useState("");
+  const [overlayText, setOverlayText] = useState("");
   const [generating, setGenerating] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const logoRef = useRef<HTMLImageElement | null>(null);
 
-  const generateMeme = async (overridePrompt?: string) => {
-    const activePrompt = (overridePrompt || prompt).trim();
-    if (!activePrompt || generating) return;
+  useEffect(() => {
+    const initLogo = async () => {
+        try {
+            const res = await fetch(LOGO_URL);
+            const blob = await res.blob();
+            const img = new Image();
+            img.src = URL.createObjectURL(blob);
+            img.onload = () => { logoRef.current = img; };
+        } catch (e) {
+            console.error("Logo load failed", e);
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = LOGO_URL;
+            img.onload = () => { logoRef.current = img; };
+        }
+    };
+    initLogo();
+  }, []);
+
+  const generateMeme = async () => {
+    if (!canvasRef.current || generating) return;
     setGenerating(true);
     setError(null);
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const logoResponse = await fetch(LOGO_URL);
-      const blob = await logoResponse.blob();
-      const logoBase64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.readAsDataURL(blob);
-      });
-      const instruction = `STYLE: Crude primitive marker doodle, simple 2D sketch. COLORS: Strictly Pure Black and Golden Yellow (#fbbf24) ONLY. MANDATORY: The character MUST have the head from the logo. BACKGROUND: Solid black. SCENE: ${activePrompt}. ${memeText ? `Include text "${memeText.toUpperCase()}"` : ""}`;
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ inlineData: { mimeType: 'image/jpeg', data: logoBase64 } }, { text: instruction }] },
-        config: { imageConfig: { aspectRatio: "1:1" } },
-      });
-      const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-      if (part?.inlineData) setResultImage(`data:image/png;base64,${part.inlineData.data}`);
-    } catch (err: any) { setError(err.message || "Error generating meme."); } finally { setGenerating(false); }
+        const visualDescription = "simple hand-drawn yellow circle potato character with two small dots for eyes";
+        // 1. Sanitize: Replace trigger words with the visual description
+        const rawPrompt = prompt.trim() ? prompt : "floating in space";
+        const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "potato character");
+
+        // 2. Construct the Scene Prompt for Gemini
+        const fullPrompt = `Draw a simple, rough, hand-drawn style meme image.
+        Style: Yellow (#fbbf24) marker lines on a solid black background. Minimalist, thick lines, MS Paint aesthetic.
+        Character: A ${visualDescription}.
+        Scene: The character is ${safePromptText}.
+        Important: The image should ONLY contain the drawing in yellow on a black background. No text.`;
+
+        let imgSource: CanvasImageSource | null = null;
+        let isFallback = false;
+
+        try {
+             // Call the new OpenAI backend endpoint
+             const response = await fetch("/api/generate-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: fullPrompt }),
+             });
+             
+             if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to generate image");
+             }
+             
+             const data = await response.json();
+             if (!data.url) throw new Error("No image URL in response");
+             
+             // Convert URL to bitmap (using a proxy or direct fetch if CORS allows)
+             const res = await fetch(data.url);
+             const blob = await res.blob();
+             imgSource = await createImageBitmap(blob);
+
+        } catch (err) {
+             console.error("OpenAI generation failed", err);
+             // Fallback logic
+             console.warn("Falling back to static logo");
+             if (logoRef.current) {
+                imgSource = logoRef.current;
+                isFallback = true;
+             } else {
+                throw new Error("Generation failed");
+             }
+        }
+
+        if (!imgSource) throw new Error("No image source available");
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Reset canvas
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw generated image
+        if (isFallback) {
+             const size = 600;
+             const x = (canvas.width - size) / 2;
+             const y = (canvas.height - size) / 2;
+             ctx.drawImage(imgSource, x, y, size, size);
+        } else {
+             ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
+        }
+
+        // Draw branding watermark (only if not fallback)
+        if (logoRef.current && !isFallback) {
+            const logoSize = 120;
+            const padding = 30;
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "black";
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(logoRef.current, canvas.width - logoSize - padding, canvas.height - logoSize - padding, logoSize, logoSize);
+            ctx.restore();
+        }
+
+        // Draw Overlay Text (Optional)
+        if (overlayText.trim()) {
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = "transparent";
+            ctx.font = "900 60px 'Permanent Marker'";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            
+            const text = overlayText.toUpperCase();
+            const textX = canvas.width / 2;
+            const textY = canvas.height - 40;
+
+            // Thick stroke
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 15;
+            ctx.lineJoin = "round";
+            ctx.strokeText(text, textX, textY);
+            
+            // Fill
+            ctx.fillStyle = THEME_YELLOW;
+            ctx.fillText(text, textX, textY);
+        }
+
+        setResultImage(canvas.toDataURL("image/png"));
+
+    } catch (err) {
+        console.error("Meme generation error:", err);
+        setError("Sack overload. Try again in a bit!");
+    } finally {
+        setGenerating(false);
+    }
+  };
+
+  const downloadMeme = () => {
+    if (resultImage) {
+        const link = document.createElement('a');
+        link.download = 'testicle-meme.png';
+        link.href = resultImage;
+        link.click();
+    }
   };
 
   return (
@@ -261,21 +385,81 @@ const MemeGenerator: React.FC = () => {
         <div className="text-center mb-10 md:mb-16">
           <Rocket size={40} className="mx-auto mb-4 md:mb-6 text-yellow-400 animate-bounce" />
           <h2 className="text-5xl md:text-7xl text-yellow-400 mb-2 md:mb-4 yellow-glow uppercase">Sack-Lab</h2>
-          <p className="text-lg md:text-xl opacity-60 uppercase tracking-widest italic">Character head locked to logo design</p>
+          <p className="text-lg md:text-xl opacity-60 uppercase tracking-widest italic">AI Scene Generator</p>
         </div>
         <div className="bg-black border-4 border-yellow-400 rounded-2xl md:rounded-[2.5rem] p-6 md:p-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+            
             <div className="space-y-6 order-2 lg:order-1">
-              <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Scenario..." className="w-full bg-black border-2 border-yellow-400/30 rounded-xl p-4 text-yellow-100 outline-none h-28" />
-              <input type="text" value={memeText} onChange={(e) => setMemeText(e.target.value)} placeholder="TO BALLHALLA" className="w-full bg-black border-2 border-yellow-400/30 rounded-lg p-3 text-yellow-100 outline-none" />
-              <button onClick={() => generateMeme()} disabled={generating || !prompt.trim()} className="w-full bg-yellow-400 text-black font-black text-xl py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-yellow-300 transition-all">
-                {generating ? <Loader2 className="animate-spin" /> : <Zap />} GENERATE
+              
+              {/* INPUT 1: SCENE PROMPT */}
+              <div className="bg-yellow-400/10 p-6 rounded-xl border border-yellow-400/30">
+                <p className="text-sm text-yellow-400/80 mb-2 uppercase font-bold tracking-wider flex items-center gap-2">
+                    <Wand2 size={16}/> WHAT IS THE SACK DOING?
+                </p>
+                <input 
+                  type="text" 
+                  value={prompt} 
+                  onChange={(e) => setPrompt(e.target.value)} 
+                  placeholder="eating pizza, driving a lambo..." 
+                  className="w-full bg-black border-2 border-yellow-400 rounded-xl p-4 text-yellow-400 text-xl font-black outline-none focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all placeholder:text-yellow-400/30" 
+                />
+              </div>
+
+              {/* INPUT 2: OVERLAY TEXT */}
+              <div className="bg-yellow-400/5 p-4 rounded-xl border border-yellow-400/20">
+                <p className="text-sm text-yellow-400/60 mb-2 uppercase font-bold tracking-wider flex items-center gap-2">
+                    <Type size={16}/> MEME TEXT (OPTIONAL)
+                </p>
+                <input 
+                  type="text" 
+                  value={overlayText} 
+                  onChange={(e) => setOverlayText(e.target.value)} 
+                  placeholder="GM / HODL / LFG" 
+                  className="w-full bg-black border border-yellow-400/50 rounded-lg p-3 text-yellow-400 text-lg font-bold outline-none focus:border-yellow-400 transition-all placeholder:text-yellow-400/20" 
+                />
+              </div>
+              
+              <button 
+                onClick={generateMeme} 
+                disabled={generating} 
+                className="w-full bg-yellow-400 text-black font-black text-2xl py-6 rounded-xl flex items-center justify-center gap-3 hover:bg-yellow-300 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_30px_rgba(251,191,36,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating ? <Loader2 className="animate-spin w-8 h-8" /> : <Zap className="w-8 h-8 fill-black" />} 
+                {resultImage ? "RE-ROLL SACK" : "GENERATE SCENE"}
               </button>
-              {error && <div className="p-3 bg-red-900/20 border border-red-500 rounded-lg text-red-400 text-xs italic">{error}</div>}
+
+              {error && (
+                <div className="flex items-center gap-2 text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-500/50 justify-center animate-pulse">
+                  <AlertCircle size={20} />
+                  <span className="text-sm font-bold uppercase">{error}</span>
+                </div>
+              )}
+
+              {resultImage && (
+                  <button onClick={downloadMeme} className="w-full bg-black border-2 border-yellow-400 text-yellow-400 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-yellow-400/10 transition-all">
+                      <Download size={20} /> DOWNLOAD HD
+                  </button>
+              )}
             </div>
-            <div className="order-1 lg:order-2 aspect-square bg-black rounded-2xl border-2 border-dashed border-yellow-400/20 flex items-center justify-center overflow-hidden">
-              {generating ? <Loader2 size={60} className="text-yellow-400 animate-spin" /> : resultImage ? <img src={resultImage} alt="Meme" className="w-full h-full object-contain" /> : <Sparkles size={80} className="opacity-10" />}
+
+            <div className="order-1 lg:order-2 aspect-square bg-black rounded-2xl border-4 border-dashed border-yellow-400/30 flex items-center justify-center overflow-hidden relative group">
+                <canvas ref={canvasRef} width={800} height={800} className="hidden" />
+                {generating ? (
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 size={80} className="text-yellow-400 animate-spin" />
+                        <span className="text-yellow-400 animate-pulse font-black tracking-widest">BREWING...</span>
+                    </div>
+                ) : resultImage ? (
+                    <img src={resultImage} alt="Meme" className="w-full h-full object-contain hover:scale-105 transition-transform duration-500" />
+                ) : (
+                    <div className="text-center opacity-30">
+                        <Sparkles size={80} className="mx-auto mb-4" />
+                        <span className="font-black text-2xl tracking-widest">READY TO COOK</span>
+                    </div>
+                )}
             </div>
+
           </div>
         </div>
       </div>
