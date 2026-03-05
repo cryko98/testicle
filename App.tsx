@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
+import { OpenAI } from "openai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_OFFICIAL_URL = "https://x.com/testicletoken";
@@ -284,7 +285,7 @@ const MemeGenerator: React.FC = () => {
         // Sanitize trigger words
         const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
 
-        // 2. Construct a very specific prompt for DALL-E 3
+        // 2. Construct a very specific prompt
         const fullPrompt = `A minimalist 2D meme image.
         STYLE: Crude, shaky, hand-drawn digital scribble style. MS Paint aesthetic.
         COLORS: ONLY use Bright Yellow (#fbbf24) for all lines and Pure Black (#000000) for the background.
@@ -300,43 +301,36 @@ const MemeGenerator: React.FC = () => {
         5. The character's head MUST be an outline only, with the interior being the same black as the background.
         6. NO other facial features (no hair, no ears, no nose, no mouth). ONLY the two yellow dots for eyes.`;
 
-        let imgSource: CanvasImageSource | null = null;
-        let isFallback = false;
+        let imgSource: HTMLImageElement | null = null;
 
         try {
-             // Call the new OpenAI backend endpoint
-             const response = await fetch("/api/generate-image", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: fullPrompt }),
+             // Call OpenAI directly from frontend
+             const apiKey = process.env.OPENAI_API_KEY;
+             if (!apiKey) throw new Error("OPENAI_API_KEY is missing");
+
+             const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+             const response = await openai.images.generate({
+                model: "dall-e-3",
+                prompt: fullPrompt,
+                n: 1,
+                size: "1024x1024",
+                response_format: "b64_json",
              });
-             
-             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to generate image");
-             }
-             
-             const data = await response.json();
-             if (!data.b64) throw new Error("No image data in response");
+
+             const base64Data = response.data?.[0]?.b64_json;
+             if (!base64Data) throw new Error("No image data returned from OpenAI");
              
              // Use base64 data directly
              imgSource = await new Promise<HTMLImageElement>((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => resolve(img);
                 img.onerror = reject;
-                img.src = `data:image/png;base64,${data.b64}`;
+                img.src = `data:image/png;base64,${base64Data}`;
              });
 
-        } catch (err) {
+        } catch (err: any) {
              console.error("OpenAI generation failed", err);
-             // Fallback logic
-             console.warn("Falling back to static logo");
-             if (logoRef.current) {
-                imgSource = logoRef.current;
-                isFallback = true;
-             } else {
-                throw new Error("Generation failed");
-             }
+             throw new Error(err.message || "Generation failed");
         }
 
         if (!imgSource) throw new Error("No image source available");
@@ -350,14 +344,7 @@ const MemeGenerator: React.FC = () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Draw generated image
-        if (isFallback) {
-             const size = 600;
-             const x = (canvas.width - size) / 2;
-             const y = (canvas.height - size) / 2;
-             ctx.drawImage(imgSource, x, y, size, size);
-        } else {
-             ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
-        }
+        ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
 
         // Draw Overlay Text (Optional)
         if (overlayText.trim()) {
@@ -384,9 +371,9 @@ const MemeGenerator: React.FC = () => {
 
         setResultImage(canvas.toDataURL("image/png"));
 
-    } catch (err) {
+    } catch (err: any) {
         console.error("Meme generation error:", err);
-        setError("Sack overload. Try again in a bit!");
+        setError(err.message || "Sack overload. Try again in a bit!");
     } finally {
         setGenerating(false);
     }
