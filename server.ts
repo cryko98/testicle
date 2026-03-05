@@ -19,8 +19,13 @@ app.post("/api/generate-image", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  // Try to find the API key in a case-insensitive way
+  const apiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+  
+  console.log("Checking API key:", apiKey ? "Found (masked)" : "Not found");
+  
   if (!apiKey) {
+    console.error("OpenAI API key is missing. Checked: OPENAI_API_KEY and openai_api_key");
     return res.status(500).json({ 
       error: "OpenAI API key is missing. Please set OPENAI_API_KEY in your environment variables." 
     });
@@ -40,12 +45,13 @@ app.post("/api/generate-image", async (req: Request, res: Response) => {
       prompt: prompt,
       n: 1,
       size: "256x256",
+      response_format: "b64_json",
     });
 
-    if (response.data && response.data[0].url) {
-      res.json({ url: response.data[0].url });
+    if (response.data && response.data[0].b64_json) {
+      res.json({ b64: response.data[0].b64_json });
     } else {
-      throw new Error("No image URL returned from OpenAI");
+      throw new Error("No image data returned from OpenAI");
     }
   } catch (error: any) {
     console.error("OpenAI error:", error);

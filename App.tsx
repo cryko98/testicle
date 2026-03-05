@@ -1,8 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle, Dice6 } from 'lucide-react';
+import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { GoogleGenAI } from "@google/genai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_OFFICIAL_URL = "https://x.com/testicletoken";
@@ -232,6 +231,26 @@ const MemeGenerator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLImageElement | null>(null);
 
+  const randomPrompts = [
+    "skiing down a mountain of yellow snow",
+    "stuck inside a giant yellow snowball",
+    "ice fishing in a frozen lake",
+    "building a snowman that looks like a giant ball",
+    "sledding on a giant gold coin",
+    "wearing a tiny yellow winter hat and scarf",
+    "eating a yellow popsicle in a snowstorm",
+    "ice skating on a vertical trading chart",
+    "driving a yellow lambo on the moon",
+    "fighting a giant bear with a yellow stick",
+    "floating in a sea of yellow bubbles",
+    "meditating on top of a giant golden coin"
+  ];
+
+  const handleRandomPrompt = () => {
+    const random = randomPrompts[Math.floor(Math.random() * randomPrompts.length)];
+    setPrompt(random);
+  };
+
   useEffect(() => {
     const initLogo = async () => {
         try {
@@ -286,12 +305,15 @@ const MemeGenerator: React.FC = () => {
              }
              
              const data = await response.json();
-             if (!data.url) throw new Error("No image URL in response");
+             if (!data.b64) throw new Error("No image data in response");
              
-             // Convert URL to bitmap (using a proxy or direct fetch if CORS allows)
-             const res = await fetch(data.url);
-             const blob = await res.blob();
-             imgSource = await createImageBitmap(blob);
+             // Use base64 data directly
+             imgSource = await new Promise<HTMLImageElement>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = `data:image/png;base64,${data.b64}`;
+             });
 
         } catch (err) {
              console.error("OpenAI generation failed", err);
@@ -397,13 +419,22 @@ const MemeGenerator: React.FC = () => {
                 <p className="text-sm text-yellow-400/80 mb-2 uppercase font-bold tracking-wider flex items-center gap-2">
                     <Wand2 size={16}/> WHAT IS THE SACK DOING?
                 </p>
-                <input 
-                  type="text" 
-                  value={prompt} 
-                  onChange={(e) => setPrompt(e.target.value)} 
-                  placeholder="eating pizza, driving a lambo..." 
-                  className="w-full bg-black border-2 border-yellow-400 rounded-xl p-4 text-yellow-400 text-xl font-black outline-none focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all placeholder:text-yellow-400/30" 
-                />
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={prompt} 
+                    onChange={(e) => setPrompt(e.target.value)} 
+                    placeholder="eating pizza, driving a lambo..." 
+                    className="w-full bg-black border-2 border-yellow-400 rounded-xl p-4 pr-12 text-yellow-400 text-xl font-black outline-none focus:shadow-[0_0_20px_rgba(251,191,36,0.3)] transition-all placeholder:text-yellow-400/30" 
+                  />
+                  <button 
+                    onClick={handleRandomPrompt}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-400 hover:scale-110 transition-transform p-2"
+                    title="Random Idea"
+                  >
+                    <Sparkles size={24} />
+                  </button>
+                </div>
               </div>
 
               {/* INPUT 2: OVERLAY TEXT */}
