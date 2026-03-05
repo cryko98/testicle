@@ -41,7 +41,7 @@ const BackgroundDrifters: React.FC = () => {
         <motion.img
           key={i}
           src={LOGO_URL}
-          className="absolute w-24 h-24 md:w-64 md:h-64 rounded-full"
+          className="absolute w-24 h-24 md:w-64 md:h-64"
           initial={{ 
             x: Math.random() * 100 + "%", 
             y: Math.random() * 100 + "%",
@@ -277,8 +277,8 @@ const MemeGenerator: React.FC = () => {
 
     try {
         // 1. Refined visual description for the character
-        const headDescription = "a simple, wobbly, unevenly hand-drawn yellow circle head (potato-shaped) with two small yellow dots for eyes";
-        const bodyDescription = "a crude yellow stick-figure body made of thin, shaky yellow lines";
+        const headDescription = "a shaky, uneven yellow outline of a circle (potato-shaped). The inside of the circle MUST be pure black (same as background). Inside the circle, there are ONLY two small yellow dots for eyes.";
+        const bodyDescription = "a crude yellow stick-figure body (thin, shaky yellow lines for neck, torso, arms, and legs) attached to the head";
         
         const rawPrompt = prompt.trim() ? prompt : "celebrating a victory";
         // Sanitize trigger words
@@ -296,7 +296,9 @@ const MemeGenerator: React.FC = () => {
         1. NO other colors besides yellow and black.
         2. NO gradients, NO shading, NO 3D effects, NO anti-aliasing.
         3. NO text in the image.
-        4. The lines must look like they were drawn quickly with a marker or mouse.`;
+        4. The lines must look like they were drawn quickly with a marker or mouse.
+        5. The character's head MUST be an outline only, with the interior being the same black as the background.
+        6. NO other facial features (no hair, no ears, no nose, no mouth). ONLY the two yellow dots for eyes.`;
 
         let imgSource: CanvasImageSource | null = null;
         let isFallback = false;
@@ -526,7 +528,7 @@ const Navbar: React.FC = () => {
       <motion.div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-yellow-400 origin-left" style={{ scaleX }} />
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <img src={LOGO_URL} alt="logo" className="w-10 h-10 md:w-12 md:h-12 object-contain rounded-full" />
+          <img src={LOGO_URL} alt="logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
           <span className="text-xl md:text-2xl text-yellow-400 yellow-glow uppercase">testicle</span>
         </div>
         <div className="hidden md:flex items-center gap-10 font-black uppercase text-sm tracking-widest">
@@ -598,7 +600,7 @@ const App: React.FC = () => (
     </main>
     <MarqueeBar className="py-8 md:py-12 text-2xl md:text-4xl" />
     <footer className="py-12 md:py-20 bg-black text-center border-t-4 border-yellow-400/10 px-6">
-      <img src={LOGO_URL} alt="logo" className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-6 grayscale hover:grayscale-0 transition-all rounded-full" />
+      <img src={LOGO_URL} alt="logo" className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-6 grayscale hover:grayscale-0 transition-all" />
       <div className="flex justify-center gap-8 mb-8">
         <a href={X_OFFICIAL_URL} target="_blank" className="hover:scale-110 transition-transform"><XLogo size={32} /></a>
         <a href={PUMP_FUN_URL} target="_blank" className="hover:scale-110 transition-transform"><ShoppingCart size={32} /></a>

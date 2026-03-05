@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req: any, res: any) {
   // Only allow POST
@@ -12,37 +12,45 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
-  // Try to find the API key in a case-insensitive way
-  const apiKey = process.env.OPENAI_API_KEY || process.env.openai_api_key;
+  // Use the Gemini API key from the environment
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    console.error("OpenAI API key is missing.");
+    console.error("Gemini API key is missing.");
     return res.status(500).json({ 
-      error: "OpenAI API key is missing. Please set OPENAI_API_KEY in your Vercel Environment Variables and REDEPLOY." 
+      error: "Gemini API key is missing." 
     });
   }
 
   try {
-    const openai = new OpenAI({
-      apiKey: apiKey,
+    const ai = new GoogleGenAI({ apiKey });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image",
+      contents: {
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
     });
 
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "b64_json",
-    });
+    let base64Data = "";
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData?.data) {
+        base64Data = part.inlineData.data;
+        break;
+      }
+    }
 
-    if (response.data && response.data[0].b64_json) {
-      res.status(200).json({ b64: response.data[0].b64_json });
+    if (base64Data) {
+      res.status(200).json({ b64: base64Data });
     } else {
-      throw new Error("No image data returned from OpenAI");
+      throw new Error("No image data returned from Gemini");
     }
   } catch (error: any) {
-    console.error("OpenAI error:", error);
+    console.error("Gemini error:", error);
     res.status(500).json({ error: error.message || "Failed to generate image" });
   }
 }
