@@ -11,11 +11,6 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// OpenAI initialization
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 // API route for image generation
 app.post("/api/generate-image", async (req: Request, res: Response) => {
   const { prompt } = req.body;
@@ -24,14 +19,27 @@ app.post("/api/generate-image", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ 
+      error: "OpenAI API key is missing. Please set OPENAI_API_KEY in your environment variables." 
+    });
+  }
+
   try {
+    // Initialize OpenAI inside the handler to avoid top-level issues
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      dangerouslyAllowBrowser: true, // Added to avoid environment detection issues in some containers
+    });
+
     // The user asked for "gpt-image-1-mini low quality".
     // Since that model doesn't exist, we use dall-e-2 which is the lower resolution/quality option.
     const response = await openai.images.generate({
-      model: "dall-e-2", // Lower quality/mini model
+      model: "dall-e-2",
       prompt: prompt,
       n: 1,
-      size: "256x256", // Low resolution as requested
+      size: "256x256",
     });
 
     if (response.data && response.data[0].url) {
