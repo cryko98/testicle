@@ -276,17 +276,26 @@ const MemeGenerator: React.FC = () => {
     setError(null);
 
     try {
-        const visualDescription = "simple hand-drawn yellow circle potato character with two small dots for eyes";
-        // 1. Sanitize: Replace trigger words with the visual description
-        const rawPrompt = prompt.trim() ? prompt : "floating in space";
-        const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "potato character");
+        // 1. Refined visual description for the character
+        const headDescription = "a simple, rough hand-drawn yellow circle head with two small yellow dots for eyes (exactly like a crude MS Paint drawing)";
+        const bodyDescription = "a simple yellow stick-figure body (thin yellow lines for torso, arms, and legs)";
+        
+        const rawPrompt = prompt.trim() ? prompt : "celebrating a victory";
+        // Sanitize trigger words
+        const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
 
-        // 2. Construct the Scene Prompt for Gemini
-        const fullPrompt = `Draw a simple, rough, hand-drawn style meme image.
-        Style: Yellow (#fbbf24) marker lines on a solid black background. Minimalist, thick lines, MS Paint aesthetic.
-        Character: A ${visualDescription}.
-        Scene: The character is ${safePromptText}.
-        Important: The image should ONLY contain the drawing in yellow on a black background. No text.`;
+        // 2. Construct a very specific prompt for DALL-E 3
+        const fullPrompt = `A minimalist 2D meme image in a "low-fi" hand-drawn style.
+        STYLE: Bright yellow (#fbbf24) marker lines on a solid, pure pitch-black background. MS Paint aesthetic, rough and crude.
+        CHARACTER: A stick figure. 
+        - HEAD: ${headDescription}.
+        - BODY: ${bodyDescription}.
+        SCENE: The stick figure character is ${safePromptText}.
+        STRICT RULES: 
+        1. ONLY use two colors: Bright Yellow (#fbbf24) for all lines/drawings and Pure Black (#000000) for the background.
+        2. NO other colors, NO gradients, NO shading, NO 3D effects.
+        3. NO text in the image.
+        4. The drawing must look like a fast, rough digital scribble.`;
 
         let imgSource: CanvasImageSource | null = null;
         let isFallback = false;

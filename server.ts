@@ -31,20 +31,20 @@ app.post("/api/generate-image", async (req: Request, res: Response) => {
     });
   }
 
-  try {
+    try {
     // Initialize OpenAI inside the handler to avoid top-level issues
     const openai = new OpenAI({
       apiKey: apiKey,
-      dangerouslyAllowBrowser: true, // Added to avoid environment detection issues in some containers
+      dangerouslyAllowBrowser: true,
     });
 
-    // The user asked for "gpt-image-1-mini low quality".
-    // Since that model doesn't exist, we use dall-e-2 which is the lower resolution/quality option.
+    // Switching to dall-e-3 for much better prompt adherence and scene generation.
     const response = await openai.images.generate({
-      model: "dall-e-2",
+      model: "dall-e-3",
       prompt: prompt,
       n: 1,
-      size: "256x256",
+      size: "1024x1024",
+      quality: "standard",
       response_format: "b64_json",
     });
 
