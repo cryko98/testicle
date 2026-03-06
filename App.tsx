@@ -2,7 +2,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { GoogleGenAI } from "@google/genai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_OFFICIAL_URL = "https://x.com/testicletoken";
@@ -304,10 +303,8 @@ const MemeGenerator: React.FC = () => {
         let imgSource: HTMLImageElement | null = null;
 
         try {
-             // Call Gemini directly from frontend
-             const apiKey = process.env.API_KEY;
-             if (!apiKey) throw new Error("API_KEY is missing");
-
+             // Call backend API instead of calling Gemini directly from frontend
+             
              // Get logo base64
              let logoBase64 = "";
              if (logoRef.current) {
@@ -321,18 +318,7 @@ const MemeGenerator: React.FC = () => {
                 }
              }
 
-             const ai = new GoogleGenAI({ apiKey });
-             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash-image",
-                contents: {
-                    parts: [
-                        {
-                            inlineData: {
-                                data: logoBase64,
-                                mimeType: "image/png"
-                            }
-                        },
-                        { text: `Using the provided image as a reference for the character's head and the overall crude, shaky, hand-drawn digital scribble style (MS Paint aesthetic), generate a new image.
+             const promptText = `Using the provided image as a reference for the character's head and the overall crude, shaky, hand-drawn digital scribble style (MS Paint aesthetic), generate a new image.
                         
                         SCENE: The character is ${safePromptText}.
                         
@@ -342,20 +328,28 @@ const MemeGenerator: React.FC = () => {
                         3. ONLY use Bright Yellow (#fbbf24) for all lines and Pure Black (#000000) for the background.
                         4. NO other colors, NO gradients, NO shading, NO 3D effects.
                         5. NO text in the image.
-                        6. The lines must look like they were drawn quickly with a marker or mouse.` }
-                    ],
+                        6. The lines must look like they were drawn quickly with a marker or mouse.`;
+
+             const response = await fetch("/api/generate-meme", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
                 },
+                body: JSON.stringify({
+                    prompt: promptText,
+                    logoBase64: logoBase64
+                }),
              });
 
-             let base64Data = "";
-             for (const part of response.candidates?.[0]?.content?.parts || []) {
-                if (part.inlineData?.data) {
-                    base64Data = part.inlineData.data;
-                    break;
-                }
+             if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to generate image");
              }
 
-             if (!base64Data) throw new Error("No image data returned from Gemini");
+             const data = await response.json();
+             const base64Data = data.base64;
+
+             if (!base64Data) throw new Error("No image data returned from server");
              
              // Use base64 data directly
              imgSource = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -366,7 +360,7 @@ const MemeGenerator: React.FC = () => {
              });
 
         } catch (err: any) {
-             console.error("Gemini generation failed", err);
+             console.error("Meme generation failed", err);
              throw new Error(err.message || "Generation failed");
         }
 
