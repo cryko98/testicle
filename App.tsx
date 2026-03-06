@@ -330,6 +330,7 @@ const MemeGenerator: React.FC = () => {
                         5. NO text in the image.
                         6. The lines must look like they were drawn quickly with a marker or mouse.`;
 
+             console.log("Sending request to /api/generate-meme...");
              const response = await fetch("/api/generate-meme", {
                 method: "POST",
                 headers: {
@@ -341,9 +342,26 @@ const MemeGenerator: React.FC = () => {
                 }),
              });
 
+             console.log("Response status:", response.status);
+             const contentType = response.headers.get("content-type");
+             console.log("Content-Type:", contentType);
              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to generate image");
+                let errorMessage = "Failed to generate image";
+                if (contentType && contentType.includes("application/json")) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorMessage;
+                } else {
+                    const text = await response.text();
+                    console.error("Non-JSON error response:", text);
+                    errorMessage = `Server error (${response.status}): ${text.slice(0, 100)}`;
+                }
+                throw new Error(errorMessage);
+             }
+
+             if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error("Expected JSON but got:", text);
+                throw new Error("Invalid response from server");
              }
 
              const data = await response.json();
