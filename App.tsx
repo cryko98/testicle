@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins, Search, ShoppingCart, ChevronDown, Pencil, Eraser, Trash2, Zap, Rocket, Type, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { OpenAI } from "openai";
+import { GoogleGenAI } from "@google/genai";
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
 const X_OFFICIAL_URL = "https://x.com/testicletoken";
@@ -304,21 +304,58 @@ const MemeGenerator: React.FC = () => {
         let imgSource: HTMLImageElement | null = null;
 
         try {
-             // Call OpenAI directly from frontend
-             const apiKey = process.env.OPENAI_API_KEY;
-             if (!apiKey) throw new Error("OPENAI_API_KEY is missing");
+             // Call Gemini directly from frontend
+             const apiKey = process.env.API_KEY;
+             if (!apiKey) throw new Error("API_KEY is missing");
 
-             const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-             const response = await openai.images.generate({
-                model: "dall-e-3",
-                prompt: fullPrompt,
-                n: 1,
-                size: "1024x1024",
-                response_format: "b64_json",
+             // Get logo base64
+             let logoBase64 = "";
+             if (logoRef.current) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = logoRef.current.width;
+                tempCanvas.height = logoRef.current.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                if (tempCtx) {
+                    tempCtx.drawImage(logoRef.current, 0, 0);
+                    logoBase64 = tempCanvas.toDataURL('image/png').split(',')[1];
+                }
+             }
+
+             const ai = new GoogleGenAI({ apiKey });
+             const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash-image",
+                contents: {
+                    parts: [
+                        {
+                            inlineData: {
+                                data: logoBase64,
+                                mimeType: "image/png"
+                            }
+                        },
+                        { text: `Using the provided image as a reference for the character's head and the overall crude, shaky, hand-drawn digital scribble style (MS Paint aesthetic), generate a new image.
+                        
+                        SCENE: The character is ${safePromptText}.
+                        
+                        STRICT RULES:
+                        1. The character's head MUST look exactly like the head in the reference image (shaky yellow outline, black interior, two yellow dots for eyes).
+                        2. The body should be a crude yellow stick figure.
+                        3. ONLY use Bright Yellow (#fbbf24) for all lines and Pure Black (#000000) for the background.
+                        4. NO other colors, NO gradients, NO shading, NO 3D effects.
+                        5. NO text in the image.
+                        6. The lines must look like they were drawn quickly with a marker or mouse.` }
+                    ],
+                },
              });
 
-             const base64Data = response.data?.[0]?.b64_json;
-             if (!base64Data) throw new Error("No image data returned from OpenAI");
+             let base64Data = "";
+             for (const part of response.candidates?.[0]?.content?.parts || []) {
+                if (part.inlineData?.data) {
+                    base64Data = part.inlineData.data;
+                    break;
+                }
+             }
+
+             if (!base64Data) throw new Error("No image data returned from Gemini");
              
              // Use base64 data directly
              imgSource = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -329,7 +366,7 @@ const MemeGenerator: React.FC = () => {
              });
 
         } catch (err: any) {
-             console.error("OpenAI generation failed", err);
+             console.error("Gemini generation failed", err);
              throw new Error(err.message || "Generation failed");
         }
 
