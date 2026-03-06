@@ -330,7 +330,6 @@ const MemeGenerator: React.FC = () => {
                         5. NO text in the image.
                         6. The lines must look like they were drawn quickly with a marker or mouse.`;
 
-             console.log("Sending request to /api/generate-meme...");
              const response = await fetch("/api/generate-meme", {
                 method: "POST",
                 headers: {
@@ -342,9 +341,7 @@ const MemeGenerator: React.FC = () => {
                 }),
              });
 
-             console.log("Response status:", response.status);
              const contentType = response.headers.get("content-type");
-             console.log("Content-Type:", contentType);
              if (!response.ok) {
                 let errorMessage = "Failed to generate image";
                 if (contentType && contentType.includes("application/json")) {
