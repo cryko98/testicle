@@ -343,7 +343,10 @@ const MemeGenerator: React.FC = () => {
         setResultImage(canvas.toDataURL("image/png"));
       };
 
-      img.onerror = () => throw new Error("Failed to load generated image");
+      img.onerror = () => {
+        setError("Failed to load generated image");
+        setGenerating(false);
+      };
       img.src = `data:image/png;base64,${data.base64}`;
 
     } catch (err: any) {
