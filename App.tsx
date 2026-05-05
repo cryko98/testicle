@@ -276,59 +276,88 @@ const MemeGenerator: React.FC = () => {
     setError(null);
 
     try {
-      // Get logo as base64
-      let logoBase64 = "";
-      if (logoRef.current) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = logoRef.current.width;
-        tempCanvas.height = logoRef.current.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (tempCtx) {
-          tempCtx.drawImage(logoRef.current, 0, 0);
-          logoBase64 = tempCanvas.toDataURL('image/jpeg').split(',')[1];
+        const rawPrompt = prompt.trim() ? prompt : "celebrating a victory";
+        // Sanitize trigger words
+        const safePromptText = rawPrompt.replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
+
+        // Get logo base64
+        let logoBase64 = "";
+        if (logoRef.current) {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = logoRef.current.width;
+          tempCanvas.height = logoRef.current.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          if (tempCtx) {
+              tempCtx.drawImage(logoRef.current, 0, 0);
+              logoBase64 = tempCanvas.toDataURL('image/png').split(',')[1];
+          }
         }
-      }
 
-      if (!logoBase64) throw new Error("Logo image not loaded");
+        const promptText = `Using the provided image as a reference for the character's head and the overall crude, shaky, hand-drawn digital scribble style (MS Paint aesthetic), generate a new image.
 
-      const rawPrompt = prompt.trim() ? prompt : "celebrating a victory";
+SCENE: The character is ${safePromptText}.
 
-      // Send to backend for AI generation
-      const response = await fetch("/api/generate-meme", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: rawPrompt,
-          logoBase64: logoBase64
-        }),
-      });
+STRICT RULES:
+1. The character's head MUST look exactly like the head in the reference image (use the provided image as the head/face).
+2. The body should be a crude yellow stick figure (thin, shaky yellow lines for neck, torso, arms, and legs) attached to the head.
+3. ONLY use Bright Yellow (#fbbf24) for all lines and Pure Black (#000000) for the background.
+4. NO other colors, NO gradients, NO shading, NO 3D effects.
+5. NO text in the image.
+6. The lines must look like they were drawn quickly with a marker or mouse.`;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate meme");
-      }
+        const response = await fetch("/api/generate-meme", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              prompt: promptText,
+              logoBase64: logoBase64
+          }),
+        });
 
-      const data = await response.json();
-      if (!data.base64) throw new Error("No image data returned");
+        const contentType = response.headers.get("content-type");
+        if (!response.ok) {
+          let errorMessage = "Failed to generate image";
+          if (contentType && contentType.includes("application/json")) {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+          } else {
+              const text = await response.text();
+              console.error("Non-JSON error response:", text);
+              errorMessage = `Server error (${response.status})`;
+          }
+          throw new Error(errorMessage);
+        }
 
-      // Display the AI-generated image
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas context not available");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Invalid response from server");
+        }
 
-      // Load and draw the generated image
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = await response.json();
+        const base64Data = data.base64;
+        if (!base64Data) throw new Error("No image data returned from server");
 
-        // Add overlay text if provided
+        // Load AI image
+        const imgSource = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = `data:image/png;base64,${base64Data}`;
+        });
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Reset canvas
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw generated image
+        ctx.drawImage(imgSource, 0, 0, canvas.width, canvas.height);
+
+        // Draw Overlay Text (Optional)
         if (overlayText.trim()) {
           ctx.font = "900 60px 'Permanent Marker'";
-          ctx.fillStyle = THEME_YELLOW;
-          ctx.strokeStyle = "black";
-          ctx.lineWidth = 15;
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
 
@@ -336,24 +365,22 @@ const MemeGenerator: React.FC = () => {
           const textX = canvas.width / 2;
           const textY = canvas.height - 40;
 
+          ctx.strokeStyle = "black";
+          ctx.lineWidth = 15;
+          ctx.lineJoin = "round";
           ctx.strokeText(text, textX, textY);
+
+          ctx.fillStyle = THEME_YELLOW;
           ctx.fillText(text, textX, textY);
         }
 
         setResultImage(canvas.toDataURL("image/png"));
-      };
-
-      img.onerror = () => {
-        setError("Failed to load generated image");
-        setGenerating(false);
-      };
-      img.src = `data:image/png;base64,${data.base64}`;
 
     } catch (err: any) {
-      console.error("Meme generation error:", err);
-      setError(err.message || "Sack overload. Try again in a bit!");
+        console.error("Meme generation error:", err);
+        setError(err.message || "Sack overload. Try again in a bit!");
     } finally {
-      setGenerating(false);
+        setGenerating(false);
     }
   };
 
