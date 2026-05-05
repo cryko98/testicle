@@ -32,7 +32,7 @@ async function startServer() {
         return res.status(400).json({ error: "Logo image is required" });
       }
 
-      const client = new GoogleGenerativeAI({ apiKey });
+      const client = new GoogleGenerativeAI(apiKey);
       const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const safePrompt = (prompt || "celebrating").replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
@@ -54,11 +54,11 @@ Generate a single stick figure meme image with the provided logo as the head.`;
       const imageData = {
         inlineData: {
           data: logoBase64,
-          mimeType: "image/jpeg",
+          mimeType: "image/jpeg" as const,
         },
       };
 
-      const response = await model.generateContent([imageData, fullPrompt]);
+      const response = await model.generateContent([imageData as any, fullPrompt]);
       const responseText = response.response.text();
 
       // Extract image from response
@@ -67,11 +67,14 @@ Generate a single stick figure meme image with the provided logo as the head.`;
       // Check if response contains image data
       const imageParts = response.response.candidates?.[0]?.content?.parts?.filter(
         (part: any) => part.inlineData?.data
-      );
+      ) || [];
 
-      if (imageParts && imageParts.length > 0) {
-        base64Data = imageParts[0].inlineData.data;
-      } else {
+      if (imageParts.length > 0 && imageParts[0]) {
+        const part = imageParts[0] as any;
+        base64Data = part.inlineData?.data || "";
+      }
+
+      if (!base64Data) {
         // Fallback: try to parse response text for image data
         const match = responseText.match(/base64,(.*?)["'\s]/);
         if (match) {
