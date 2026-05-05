@@ -2,7 +2,7 @@
 import express, { Request, Response } from "express";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
@@ -18,49 +18,75 @@ async function startServer() {
     res.json({ status: "ok", env: process.env.NODE_ENV });
   });
 
-  // Backend route for image generation to keep API_KEY secure
+  // Meme generation with Gemini AI (using legolcsóbb Flash model)
   const generateMemeHandler = async (req: Request, res: Response) => {
     try {
       const { prompt, logoBase64 } = req.body;
-      const apiKey = process.env.API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
-        console.error("API_KEY is missing from environment");
-        return res.status(500).json({ error: "API_KEY is not configured on the server" });
+        return res.status(500).json({ error: "API key not configured on server" });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image",
-        contents: {
-          parts: [
-            ...(logoBase64 ? [{
-              inlineData: {
-                data: logoBase64,
-                mimeType: "image/png"
-              }
-            }] : []),
-            { text: prompt }
-          ],
-        },
-      });
+      if (!logoBase64) {
+        return res.status(400).json({ error: "Logo image is required" });
+      }
 
+      const client = new GoogleGenerativeAI({ apiKey });
+      const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const safePrompt = (prompt || "celebrating").replace(/testicle|nutsack|scrotum|penis|dick|cock|balls|sack|nut/gi, "character");
+
+      const fullPrompt = `You are a meme generator. Using the provided yellow logo image as the character's head, create a stick figure meme.
+
+REQUIREMENTS:
+1. The character's HEAD must be the provided image
+2. The body must be a simple stick figure with:
+   - Yellow lines (#fbbf24) on black background (#000000)
+   - Thin stick arms and legs
+3. The scene: The character is ${safePrompt}
+4. Style: Crude, hand-drawn, MS Paint aesthetic
+5. NO other colors besides yellow and black
+6. NO text, NO gradients, NO 3D effects
+
+Generate a single stick figure meme image with the provided logo as the head.`;
+
+      const imageData = {
+        inlineData: {
+          data: logoBase64,
+          mimeType: "image/jpeg",
+        },
+      };
+
+      const response = await model.generateContent([imageData, fullPrompt]);
+      const responseText = response.response.text();
+
+      // Extract image from response
       let base64Data = "";
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData?.data) {
-          base64Data = part.inlineData.data;
-          break;
+
+      // Check if response contains image data
+      const imageParts = response.response.candidates?.[0]?.content?.parts?.filter(
+        (part: any) => part.inlineData?.data
+      );
+
+      if (imageParts && imageParts.length > 0) {
+        base64Data = imageParts[0].inlineData.data;
+      } else {
+        // Fallback: try to parse response text for image data
+        const match = responseText.match(/base64,(.*?)["'\s]/);
+        if (match) {
+          base64Data = match[1];
         }
       }
 
       if (!base64Data) {
-        throw new Error("No image data returned from Gemini");
+        throw new Error("No image generated - try a different prompt");
       }
 
       res.status(200).json({ base64: base64Data });
     } catch (error: any) {
-      console.error("Gemini generation error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate image" });
+      console.error("Meme generation error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate meme" });
     }
   };
 
