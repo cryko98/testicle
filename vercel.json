@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/generate-image" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/generate-meme", "destination": "/api/generate-meme" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
