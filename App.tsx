@@ -4,6 +4,7 @@ import { Copy, Check, Menu, X, Wand2, Download, Loader2, Sparkles, Wallet, Coins
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 
 const CONTRACT_ADDRESS = "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump";
+const FEE_WALLET = "3QoaYdEyk726WsyjSNeqWZc42dVPrP7QdEWpXCA15P2Z";
 const X_OFFICIAL_URL = "https://x.com/testicletoken";
 const LOGO_URL = "https://pbs.twimg.com/media/G8sWdI6bEAEnZWB?format=jpg&name=240x240";
 const PUMP_FUN_URL = `https://pump.fun/coin/${CONTRACT_ADDRESS}`;
@@ -518,6 +519,17 @@ const Navbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 border-b-2 border-yellow-400/20 py-3 md:py-4 px-4 md:px-6 backdrop-blur-sm">
       <motion.div className="absolute bottom-[-2px] left-0 right-0 h-1 bg-yellow-400 origin-left" style={{ scaleX }} />
+      <div className="max-w-7xl mx-auto mb-2 md:mb-3 pb-2 md:pb-3 border-b border-yellow-400/10 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-center">
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-yellow-400">💸 Redirect your creator rewards here</span>
+        <button
+          onClick={() => navigator.clipboard.writeText(FEE_WALLET)}
+          title="Copy fee wallet"
+          className="flex items-center gap-2 text-[10px] md:text-xs font-mono text-white/80 hover:text-yellow-400 transition-colors break-all"
+        >
+          <span className="break-all">{FEE_WALLET}</span>
+          <Copy size={12} className="flex-shrink-0" />
+        </button>
+      </div>
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <img src={LOGO_URL} alt="logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
