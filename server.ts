@@ -2,9 +2,12 @@
 import express, { Request, Response } from "express";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
-import { GoogleGenAI } from "@google/genai";
+import { fal } from "@fal-ai/client";
 
 dotenv.config();
+
+// fal.ai FLUX image-to-image: reference image + text prompt -> new scene.
+const FAL_MODEL = "fal-ai/flux/dev/image-to-image";
 
 async function startServer() {
   const app = express();
@@ -22,45 +25,44 @@ async function startServer() {
   const generateMemeHandler = async (req: Request, res: Response) => {
     try {
       const { prompt, logoBase64 } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+      const apiKey = process.env.FAL_KEY || process.env.FAL_API_KEY;
 
       if (!apiKey) {
-        console.error("GEMINI_API_KEY is missing from environment");
+        console.error("FAL_KEY is missing from environment");
         return res.status(500).json({ error: "API key not configured on the server" });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-image",
-        contents: {
-          parts: [
-            ...(logoBase64 ? [{
-              inlineData: {
-                data: logoBase64,
-                mimeType: "image/png"
-              }
-            }] : []),
-            { text: prompt }
-          ],
+      if (!logoBase64) {
+        return res.status(400).json({ error: "Reference image is required" });
+      }
+
+      fal.config({ credentials: apiKey });
+
+      const result = await fal.subscribe(FAL_MODEL, {
+        input: {
+          prompt,
+          image_url: `data:image/png;base64,${logoBase64}`,
+          strength: 0.85,
+          num_images: 1,
+          output_format: "png",
         },
       });
 
-      let base64Data = "";
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          base64Data = part.inlineData.data;
-          break;
-        }
+      const imageUrl = (result as any)?.data?.images?.[0]?.url;
+      if (!imageUrl) {
+        throw new Error("No image returned from fal.ai");
       }
 
-      if (!base64Data) {
-        throw new Error("No image data returned from Gemini");
+      const imgResponse = await fetch(imageUrl);
+      if (!imgResponse.ok) {
+        throw new Error(`Failed to download generated image (${imgResponse.status})`);
       }
+      const arrayBuffer = await imgResponse.arrayBuffer();
+      const base64Data = Buffer.from(arrayBuffer).toString("base64");
 
       res.status(200).json({ base64: base64Data });
     } catch (error: any) {
-      console.error("Gemini generation error:", error);
+      console.error("fal.ai generation error:", error);
       res.status(500).json({ error: error.message || "Failed to generate image" });
     }
   };
