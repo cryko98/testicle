@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fal } from "@fal-ai/client";
 
-// fal.ai FLUX image-to-image: uses the reference image (character head) as a
-// base and the text prompt to produce a new scene in the same style.
-const FAL_MODEL = "fal-ai/flux/dev/image-to-image";
+// fal.ai image-edit model (Gemini 2.5 Flash Image): takes the reference image
+// as the character head and follows the prompt/style instructions to produce a
+// new minimalist yellow-on-black doodle scene.
+const FAL_MODEL = "fal-ai/nano-banana/edit";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -25,14 +26,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     fal.config({ credentials: apiKey });
 
-    // The reference image (character head) is passed as a data URI. `strength`
-    // is kept high so the prompt drives the new scene while the yellow-on-black
-    // doodle style of the reference is preserved.
+    // The reference image (character head) is passed as a data URI so the model
+    // reuses it as the head/face of the generated stick figure.
     const result = await fal.subscribe(FAL_MODEL, {
       input: {
         prompt,
-        image_url: `data:image/png;base64,${logoBase64}`,
-        strength: 0.85,
+        image_urls: [`data:image/png;base64,${logoBase64}`],
         num_images: 1,
         output_format: "png",
       },

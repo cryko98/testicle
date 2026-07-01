@@ -6,8 +6,9 @@ import { fal } from "@fal-ai/client";
 
 dotenv.config();
 
-// fal.ai FLUX image-to-image: reference image + text prompt -> new scene.
-const FAL_MODEL = "fal-ai/flux/dev/image-to-image";
+// fal.ai image-edit model (Gemini 2.5 Flash Image): reference image as the
+// character head + prompt -> new minimalist yellow-on-black doodle scene.
+const FAL_MODEL = "fal-ai/nano-banana/edit";
 
 async function startServer() {
   const app = express();
@@ -41,8 +42,7 @@ async function startServer() {
       const result = await fal.subscribe(FAL_MODEL, {
         input: {
           prompt,
-          image_url: `data:image/png;base64,${logoBase64}`,
-          strength: 0.85,
+          image_urls: [`data:image/png;base64,${logoBase64}`],
           num_images: 1,
           output_format: "png",
         },

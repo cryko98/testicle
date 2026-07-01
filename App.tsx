@@ -293,17 +293,20 @@ const MemeGenerator: React.FC = () => {
           }
         }
 
-        const promptText = `Use the provided reference image as the character's head/face. Draw a brand new, minimalist, crude hand-drawn digital scribble (MS Paint / marker doodle aesthetic) in the exact same style.
+        const promptText = `Draw a brand new, minimalist, crude hand-drawn digital scribble (MS Paint / marker doodle aesthetic) using the provided reference image as the character's head/face.
 
-SCENE: The character is ${safePromptText}.
+MAIN SUBJECT (must always be present): a yellow stick-figure character whose head is exactly the head from the reference image. This character is the star of every image and must be clearly visible and prominent in the scene.
+
+SCENE: The stick-figure character is ${safePromptText}.
 
 STRICT RULES:
-1. The character's head MUST look exactly like the head in the reference image (reuse it as the head/face).
-2. The body is a crude yellow stick figure: thin, shaky yellow lines for neck, torso, arms and legs, attached to the head.
-3. Minimalist single-scene composition with lots of empty black space, just like a quick doodle. Only draw what the scene needs.
-4. ONLY use Bright Yellow (#fbbf24) for every line and Pure Black (#000000) for the background. NO other colors, NO gradients, NO shading, NO 3D, NO textures.
-5. NO text, NO letters, NO watermark in the image.
-6. The lines must look like they were drawn quickly and roughly with a marker or a mouse.`;
+1. ALWAYS draw the full stick-figure character in the scene: the reference-image head on top, plus a crude body made of thin, shaky yellow lines for neck, torso, arms and legs. Never draw only the object/vehicle without the character.
+2. The character's head MUST look exactly like the head in the reference image (reuse it directly as the head/face).
+3. If the scene involves a vehicle or object, the character is actively using/riding/holding it and is drawn clearly (e.g. sitting in the car, hands on the wheel).
+4. Minimalist single-scene composition with lots of empty black space, like a quick doodle. Only draw what the scene needs.
+5. ONLY use Bright Yellow (#fbbf24) for every line and Pure Black (#000000) for the background. NO other colors, NO gradients, NO shading, NO 3D, NO textures.
+6. NO text, NO letters, NO watermark in the image.
+7. The lines must look like they were drawn quickly and roughly with a marker or a mouse.`;
 
         const response = await fetch("/api/generate-meme", {
           method: "POST",
